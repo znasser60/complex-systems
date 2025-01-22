@@ -41,6 +41,7 @@ def get_neighbors(x, y, N):
                 nx, ny = x + i, y + j
                 if 0 <= nx < N and 0 <= ny < N:
                     neighbors.append((nx, ny))
+    np.random.shuffle(neighbors)
     return neighbors
 
 # Probability of a healthy cell mutating into a cancer cell 
@@ -61,25 +62,26 @@ def save_frame(grid, step):
     plt.savefig(os.path.join(output_dir, f'frame_{step}.png'), bbox_inches='tight', pad_inches=0)
     plt.close()
 
-def simulate_growth(N, T, p, d, save_plots = False):
+def simulate_growth(N, T, p, d, m, save_plots = False):
     # Initialize the grid
     old_grid = np.zeros((N, N), dtype=int)
     center = N // 2
-    old_grid[center, center] = 1  # Single tumor cell in the center
+    #old_grid[center, center] = 1  # Single tumor cell in the center
     # Tumor growth simulation
     for step in range(T):
         new_grid = old_grid.copy()
-        for x in range(N):
-            for y in range(N):
-                if old_grid[x, y] == 1:  # If I am a tumor cell
-                    neighbors = get_neighbors(x, y, N)
-                    for nx, ny in neighbors:
-                        # If neighbors are healthy
-                        if old_grid[nx, ny] == 0 and np.random.rand() < p:
-                            new_grid[nx, ny] = 1 #Infect each neighbor with growth probability
-                if old_grid[x, y] == 1 and np.random.rand() < d:
-                    # this tumor cell dies with d probability
-                    new_grid[x, y] = 2
+        for x, y in np.random.permutation([(i, j) for i in range(N) for j in range(N)]):
+            if old_grid[x, y] == 1:  # If I am a tumor cell
+                neighbors = get_neighbors(x, y, N)
+                for nx, ny in neighbors:
+                    # If neighbors are healthy
+                    if old_grid[nx, ny] == 0 and np.random.rand() < p:
+                        new_grid[nx, ny] = 1 #Infect each neighbor with growth probability
+            if old_grid[x, y] == 1 and np.random.rand() < d:
+                # this tumor cell dies with d probability
+                new_grid[x, y] = 2
+            elif old_grid[x,y] == 0 : 
+                new_grid[x,y] = mutate(m)
         old_grid = new_grid
         #print(f"Number of tumor cells (NEW GRID): {np.sum(new_grid == 1)}, healthy cells: {np.sum(new_grid == 0)}, "
         #      f"dead cells: {np.sum(new_grid == 2)}, total cells: {N * N}")
@@ -105,6 +107,6 @@ if __name__ == '__main__':
     p = args.GROWTH_PROBABILITY  # Probability of tumor cell division
     d = args.DEATH_PROBABILITY # Probability that a tumor cell dies
     m = args.MUTATION_PROBABILITY # probabilty that a healthy cell turns into a tumor cell 
-    grid = simulate_growth(N, T, p, d, save_plots = True)
+    grid = simulate_growth(N, T, p, d, m, save_plots = True)
     save_gif(T)
 
