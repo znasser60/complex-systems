@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 from PIL import Image
 from argparse import ArgumentParser, RawTextHelpFormatter
+import os
 
 def parse_args():
     "Parses inputs from commandline and returns them as a Namespace object."
@@ -45,7 +46,11 @@ def save_frame(grid, step):
     plt.axis('off')
     plt.title(f"Tumor Growth at Step {step}")
     # Save the current frame to an image object
-    plt.savefig(f'C:/Users/gelie/Home/ComputationalScience/ComplexSystems/project/complex-systems/data/frame_{step}.png', bbox_inches='tight', pad_inches=0)
+    # Create directory if it doesn't exist
+    output_dir = os.path.join(os.getcwd(), 'data')
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    plt.savefig(os.path.join(output_dir, f'frame_{step}.png'), bbox_inches='tight', pad_inches=0)
     plt.close()
 
 def simulate_growth(N, T, p, d, save_plots = False):
@@ -76,10 +81,9 @@ def simulate_growth(N, T, p, d, save_plots = False):
 
 def save_gif(T):
     # Create GIF from saved frames
-    images = [Image.open(
-        f'C:/Users/gelie/Home/ComputationalScience/ComplexSystems/project/complex-systems/data/frame_{step}.png') for
-              step in range(0, T, 5)]
-    gif_path = 'C:/Users/gelie/Home/ComputationalScience/ComplexSystems/project/complex-systems/data/tumor_growth_simulation.gif'
+    output_dir = os.path.join(os.getcwd(), 'data')
+    images = [Image.open(os.path.join(output_dir, f'frame_{step}.png')) for step in range(0, T, 5)]
+    gif_path = os.path.join(output_dir, 'tumor_growth_simulation.gif')
     images[0].save(gif_path, save_all=True, append_images=images[1:], duration=300, loop=0)
 
     # Display the path to download the GIF
