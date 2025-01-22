@@ -19,25 +19,26 @@ def parse_args():
     parser.add_argument('-T', dest='TIME_STEPS', type=int, default=100,
         help='number of time steps (default = 100)')
 
-    parser.add_argument('-Np', dest='N_GROWTH_PROBABILITIES', type=int, default=30,
-        help='Number of values assumed for growth probability, equally spaced within the range between 0 and 1 (default = 30) ')
+    parser.add_argument('-Np', dest='N_GROWTH_PROBABILITIES', type=int, default=20,
+        help='Number of values assumed for growth probability, equally spaced within the range between 0 and 1 (default = 20) ')
 
-    parser.add_argument('-d', dest='DEATH_PROBABILITY', type=float, default=0.01,
-                        help='death probability, probability that tumor cell dies, (default = 0.01) ')
+    parser.add_argument('-Nd', dest='N_DEATH_PROBABILITIES', type=int, default=20,
+                        help='number of values assumed for death probability,equally spaced within range of 0 and 1, (default = 20) ')
 
     return parser.parse_args()
 
 
-def plot(growth_probabilities, tumor_sizes, Np, d, T, N):
+def plot(ratios, tumor_sizes, Np, Nd, T, N):
     # Plotting the results
-    plt.plot(growth_probabilities, tumor_sizes, marker='o')
-    #plt.xscale('log')
-    plt.xlabel("Growth Probability (p)")
-    plt.ylabel("Final Tumor Size")
-    plt.title("Tumor Growth as a Function of Growth Probability \n"
-              f"(d = {d}, T = {T})")
+    plt.scatter(ratios, tumor_sizes, marker='o')
+    plt.xscale('log')
+    plt.axvline(x=1, color='red', linestyle='--', label='Critical Point (p = d)')
+    plt.xlabel('Growth-to-Death Probability Ratio (p/d)')
+    plt.ylabel('Final Tumor Size (% of grid size)')
+    plt.title("Tumor Growth vs. Growth-to-Death Probability Ratio p/d \n"
+              f"(T = {T})")
     plt.grid(True)
-    plt.savefig(f"data/Tumorsize_Np{Np}_d{d}_T{T}_N{N}_nolog.png")
+    plt.savefig(f"data/Tumorsize_ratio_Np{Np}_Nd{Nd}_T{T}_N{N}_log.png")
 
 
 if __name__ == '__main__':
@@ -47,19 +48,26 @@ if __name__ == '__main__':
     N = args.GRID_SIZE  # Size of the grid (default 50x50)
     T = args.TIME_STEPS  # Number of simulation steps
     Np = args.N_GROWTH_PROBABILITIES  # Probability of tumor cell division
-    d = args.DEATH_PROBABILITY
+    Nd = args.N_DEATH_PROBABILITIES
 
-    growth_probabilities = np.linspace(0.0, 1.0, Np)  # Growth probabilities from 0 to 1
+    growth_probabilities = np.linspace(0.01, 0.99, Np)  # Growth probabilities from 0 to 1
+    death_probabilities = np.linspace(0.01, 0.99, Nd)
     # Results storage
+    ratios = []
     tumor_sizes = []  # Store final tumor size for each growth probability
+    #growth_probabilities = []
 
     # Run simulations for each growth probability
     for p in growth_probabilities:
         print(f"Growth probability: {p}")
-        grid = tg.simulate_growth(N, T, p,d)
-        size = np.sum(grid == 1)
-        tumor_sizes.append(size)
+        for d in death_probabilities:
+            print(f"ratio p/d = {np.round(p/d, 3)}")
+            grid = tg.simulate_growth(N, T, p,d)
+            size = np.sum(grid == 1)
+            ratios.append(p/d)
+            #growth_probabilities.append(p)
+            tumor_sizes.append(size/(N*N))
 
-    plot(growth_probabilities, tumor_sizes, Np, d, T, N)
+    plot(ratios, tumor_sizes, Np, Nd, T, N)
 
 
