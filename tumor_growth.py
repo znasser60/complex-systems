@@ -26,6 +26,9 @@ def parse_args():
 
     parser.add_argument('-d', dest='DEATH_PROBABILITY', type=float, default=0.01,
                         help='death probability, probability that tumor cell dies, (default = 0.01) ')
+    
+    parser.add_argument('-m', dest = 'MUTATION_PROBABILITY', type = float, default = .00001, 
+                        help = 'mutation probability of a healthy cell into a cancer cell, (default = .00001)')
     return parser.parse_args()
 
 
@@ -39,6 +42,11 @@ def get_neighbors(x, y, N):
                 if 0 <= nx < N and 0 <= ny < N:
                     neighbors.append((nx, ny))
     return neighbors
+
+# Probability of a healthy cell mutating into a cancer cell 
+def mutate(p_mutate): 
+    return 1 if np.random.rand() < p_mutate else 0
+
 
 def save_frame(grid, step):
     plt.figure(figsize=(5, 5))
@@ -96,6 +104,7 @@ if __name__ == '__main__':
     T = args.TIME_STEPS  # Number of simulation steps
     p = args.GROWTH_PROBABILITY  # Probability of tumor cell division
     d = args.DEATH_PROBABILITY # Probability that a tumor cell dies
-
+    m = args.MUTATION_PROBABILITY # probabilty that a healthy cell turns into a tumor cell 
     grid = simulate_growth(N, T, p, d, save_plots = True)
     save_gif(T)
+
