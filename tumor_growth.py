@@ -30,6 +30,7 @@ def parse_args():
 
 # Define neighborhood rule (Moore neighborhood)
 def get_neighbors(x, y, N):
+    """Given coordinate x and y in a N by N grid, compute the coordinates of all neighbors (Moore neighborhood)."""
     neighbors = []
     for i in [-1, 0, 1]:
         for j in [-1, 0, 1]:
@@ -40,6 +41,7 @@ def get_neighbors(x, y, N):
     return neighbors
 
 def save_frame(grid, step):
+    """Save a heatmap of the current grid state. """
     plt.figure(figsize=(5, 5))
     plt.imshow(grid, cmap='viridis', interpolation='nearest', vmin=0, vmax=2)
     plt.axis('off')
@@ -48,7 +50,26 @@ def save_frame(grid, step):
     plt.savefig(f'C:/Users/gelie/Home/ComputationalScience/ComplexSystems/project/complex-systems/data/frame_{step}.png', bbox_inches='tight', pad_inches=0)
     plt.close()
 
+def update_grid(old_grid, new_grid, p, d):
+    """Iterate through the whole old grid and update new grid where a healthy cell becomes a tumor or
+    a tumor cell from the old grid dies."""
+    N = np.size(old_grid,1)
+    for x in range(N):
+        for y in range(N):
+            if old_grid[x, y] == 1:  # If I am a tumor cell
+                neighbors = get_neighbors(x, y, N)
+                for nx, ny in neighbors:
+                    # If neighbors are healthy
+                    if old_grid[nx, ny] == 0 and np.random.rand() < p:
+                        new_grid[nx, ny] = 1  # Infect each neighbor with growth probability
+            if old_grid[x, y] == 1 and np.random.rand() < d:
+                # this tumor cell dies with d probability
+                new_grid[x, y] = 2
+    return new_grid
+
 def simulate_growth(N, T, p, d, save_plots = False):
+    """Perform T simulation steps. Returns the grid with the new cell values after T grid updates. If save_plots==True,
+    save each 5th frame in a png file, else no images are created."""
     # Initialize the grid
     old_grid = np.zeros((N, N), dtype=int)
     center = N // 2
@@ -56,25 +77,13 @@ def simulate_growth(N, T, p, d, save_plots = False):
     # Tumor growth simulation
     for step in range(T):
         new_grid = old_grid.copy()
-        for x in range(N):
-            for y in range(N):
-                if old_grid[x, y] == 1:  # If I am a tumor cell
-                    neighbors = get_neighbors(x, y, N)
-                    for nx, ny in neighbors:
-                        # If neighbors are healthy
-                        if old_grid[nx, ny] == 0 and np.random.rand() < p:
-                            new_grid[nx, ny] = 1 #Infect each neighbor with growth probability
-                if old_grid[x, y] == 1 and np.random.rand() < d:
-                    # this tumor cell dies with d probability
-                    new_grid[x, y] = 2
-        old_grid = new_grid
-        #print(f"Number of tumor cells (NEW GRID): {np.sum(new_grid == 1)}, healthy cells: {np.sum(new_grid == 0)}, "
-        #      f"dead cells: {np.sum(new_grid == 2)}, total cells: {N * N}")
+        old_grid = update_grid(old_grid, new_grid, p, d)
         if (step % 5 == 0) and save_plots:  # Save every 5th step
             save_frame(old_grid, step)
     return old_grid
 
 def save_gif(T):
+    """Create a gif, assuming that images have been created for several time steps of the simulation. """
     # Create GIF from saved frames
     images = [Image.open(
         f'C:/Users/gelie/Home/ComputationalScience/ComplexSystems/project/complex-systems/data/frame_{step}.png') for
