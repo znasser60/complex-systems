@@ -35,6 +35,13 @@ Investigate the distribution of avalanche sizes (= number of cell state changes 
 ![avalanche_sizes_dist_N100_T500_p0 3_d0 05_nit_20_loglog](https://github.com/user-attachments/assets/095c2e2b-9257-4fc5-a1ca-fdc41051d4fc)
 
 
+Fitting the model for different parameters of growth and death probabilities: 
+![avalanche_sizes_multiple_p_constant_d_N100_T500_nit_2_loglog](https://github.com/user-attachments/assets/31275915-bce7-418f-b596-281935a8d05f)
+
+![avalanche_sizes_multiple_d_constant_p_N100_T500_nit_2_loglog](https://github.com/user-attachments/assets/ba99e092-04c0-40d9-b935-600a3ca8e148)
+
+
+
 ### Input parameters
 Receives input parameters `-N`, `-T`, `-p`, `-d` for grid size, number of time steps, growth probability and death probability, respectively. 
 
