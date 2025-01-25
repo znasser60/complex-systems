@@ -1,37 +1,40 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
+import matplotlib
 from PIL import Image
-from scipy.ndimage import laplace
 from argparse import ArgumentParser, RawTextHelpFormatter
+import os
 
 def parse_args():
-    """Parses command-line arguments."""
-    parser = ArgumentParser(
-        prog='python3 tumor_growth.py',
-        formatter_class=RawTextHelpFormatter,
-        description=(
-            'Simulate tumor growth given arguments for growth probability, grid size, and number of time steps.\n\n'
-            'Example syntax:\n'
-            '  python3 tumor_growth.py -N 50 -T 100 -p 0.1\n'
-        )
-    )
-    parser.add_argument('-N', dest='GRID_SIZE', type=int, default=100, help='Grid size (default: 100)')
-    parser.add_argument('-T', dest='TIME_STEPS', type=int, default=100, help='Number of time steps (default: 100)')
-    parser.add_argument('-p', dest='GROWTH_PROBABILITY', type=float, default=0.6, help='Tumor cell division probability (default: 0.6)')
-    parser.add_argument('-od', dest='OXYGEN_DIFFUSION', type=float, default=0.3, help='Oxygen diffusion coefficient (default: 0.3)')
-    parser.add_argument('-cu', dest='CANCER_UPTAKE', type=float, default=0.1, help='Cancer cell oxygen uptake rate (default: 0.1)')
-    parser.add_argument('-nu', dest='NORMAL_UPTAKE', type=float, default=0.2, help='Normal cell oxygen uptake rate (default: 0.2)')
-    parser.add_argument('-o', dest='INITIAL_OXYGEN', type=float, default=0.8, help='Initial oxygen concentration (default: 0.8)')
-    parser.add_argument('-nt1', dest='NT1', type=float, default=0.05, help='Oxygen threshold for normal cells with normal neighbors (default: 0.05)')
-    parser.add_argument('-nt2', dest='NT2', type=float, default=0.1, help='Oxygen threshold for normal cells with cancer neighbors (default: 0.1)')
-    parser.add_argument('-ct1', dest='CT1', type=float, default=0.05, help='Oxygen threshold for cancer cells with cancer neighbors (default: 0.05)')
-    parser.add_argument('-ct2', dest='CT2', type=float, default=0.1, help='Oxygen threshold for cancer cells with normal neighbors (default: 0.1)')
-    parser.add_argument('-qt', dest='QUIESCENCE_TIME', type=int, default=10, help='Quiescence time for cancer cells (default: 10)')
-    parser.add_argument('--output-path', dest='OUTPUT_PATH', type=str, default='./', help='Path to save frames and GIF')
+    "Parses inputs from commandline and returns them as a Namespace object."
+
+    parser = ArgumentParser(prog = 'python3 tumor_growth.py',
+        formatter_class = RawTextHelpFormatter, description =
+        '  Simulate tumor growth given arguments for growth probability, grid size and number of time steps.\n\n'
+        '  Example syntax:\n'
+        '    python3 tumor_growth.py -N 50 -T 100 -p 0.1 -d 0.01\n')
+
+    # Optionals
+    parser.add_argument('-N', dest='GRID_SIZE', type=int, default=50,
+        help='grid size (default = 50)')
+
+    parser.add_argument('-T', dest='TIME_STEPS', type=int, default=100,
+        help='number of time steps (default = 100)')
+
+    parser.add_argument('-p', dest='GROWTH_PROBABILITY', type=float, default=0.3,
+        help='growth probability, probability that tumor cell divides, (default = 0.3) ')
+
+    parser.add_argument('-d', dest='DEATH_PROBABILITY', type=float, default=0.01,
+                        help='death probability, probability that tumor cell dies, (default = 0.01) ')
+    
+    parser.add_argument('-m', dest = 'MUTATION_PROBABILITY', type = float, default = .00001, 
+                        help = 'mutation probability of a healthy cell into a cancer cell, (default = .00001)')
     return parser.parse_args()
 
+
+# Define neighborhood rule (Moore neighborhood)
 def get_neighbors(x, y, N):
+    """Given coordinate x and y in a N by N grid, compute the coordinates of all neighbors (Moore neighborhood)."""
     neighbors = []
     for i in [-1, 0, 1]:
         for j in [-1, 0, 1]:
@@ -41,129 +44,76 @@ def get_neighbors(x, y, N):
                     neighbors.append((nx, ny))
     return neighbors
 
-def count_neighbors(x, y, cell_grid, N):
-    """Counts the number of normal and cancer neighbors of a cell."""
-    neighbors = get_neighbors(x, y, N)
-    normal = sum(1 for nx, ny in neighbors if cell_grid[nx, ny] == 1)
-    cancer = sum(1 for nx, ny in neighbors if cell_grid[nx, ny] == 2)
-    return normal, cancer
+# Probability of a healthy cell mutating into a cancer cell 
+def mutate(p_mutate): 
+    return 1 if np.random.rand() < p_mutate else 0
 
-def update_oxygen(cell_grid, oxygen_grid, normal_uptake, cancer_uptake, diffusion):
-    """Updates the oxygen grid."""
-    uptake = np.zeros_like(oxygen_grid)
-    uptake[cell_grid == 1] = normal_uptake
-    uptake[cell_grid == 2] = cancer_uptake
-    return np.clip(oxygen_grid + diffusion * laplace(oxygen_grid) - uptake, 0, 1)
 
-def save_frame(cell_grid, oxygen_grid, step, output_path):
-    """Saves a frame of the simulation."""
-    plt.figure(figsize=(10, 5))
-    plt.subplot(1, 2, 1)
-    plt.imshow(cell_grid, cmap='viridis', interpolation='nearest')
-    plt.title(f"Cell States at Step {step}")
+def save_frame(grid, step):
+    """Save a heatmap of the current grid state. """
+    plt.figure(figsize=(5, 5))
+    plt.imshow(grid, cmap='viridis', interpolation='nearest', vmin=0, vmax=2)
     plt.axis('off')
-    plt.legend(handles=[
-        mpatches.Patch(color='black', label='Quiescent Cancer Cell'),
-        mpatches.Patch(color='yellow', label='Cancer Cell'),
-        mpatches.Patch(color='green', label='Normal Cell'),
-        mpatches.Patch(color='purple', label='Empty')
-    ], loc='upper right', fontsize=8)
-
-    plt.subplot(1, 2, 2)
-    plt.imshow(oxygen_grid, cmap='coolwarm', interpolation='nearest')
-    plt.title(f"Oxygen Levels at Step {step}")
-    plt.axis('off')
-    cbar = plt.colorbar()
-    cbar.set_label('Oxygen Concentration', fontsize=8)
-    plt.savefig(f"{output_path}/frame_{step}.png", bbox_inches='tight', pad_inches=0)
+    plt.title(f"Tumor Growth at Step {step}")
+    # Save the current frame to an image object
+    # Create directory if it doesn't exist
+    output_dir = os.path.join(os.getcwd(), 'data')
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    plt.savefig(os.path.join(output_dir, f'frame_{step}.png'), bbox_inches='tight', pad_inches=0)
     plt.close()
 
-def simulate_growth(args):
-    """Runs the tumor growth simulation."""
-    N = args.GRID_SIZE
-    T = args.TIME_STEPS
+def update_grid(old_grid, new_grid, p, d, m):
+    """Iterate through the whole old grid and update new grid where a healthy cell becomes a tumor or
+    a tumor cell from the old grid dies."""
+    N = np.size(old_grid,1)
+    for x, y in np.random.permutation([(i, j) for i in range(N) for j in range(N)]):
+        if old_grid[x, y] == 1:  # If I am a tumor cell
+           neighbors = get_neighbors(x, y, N)
+           for nx, ny in neighbors:
+               # If neighbors are healthy
+               if old_grid[nx, ny] == 0 and np.random.rand() < p:
+                   new_grid[nx, ny] = 1  # Infect each neighbor with growth probability
+        elif old_grid[x, y] == 0: # If I am healthy, maybe mutate
+           new_grid[x, y] = mutate(m)
+        if (old_grid[x,y] == 1) and (np.random.rand() < d):  # If I am tumor, maybe die
+            new_grid[x, y] = 2
+    return new_grid
 
-    # Initialize grids
-    cell_grid = np.zeros((N, N), dtype=int)
-    oxygen_grid = np.full((N, N), args.INITIAL_OXYGEN)
-    quiescent_clock = np.zeros((N, N), dtype=int)
-
-    # Add initial cells and vessels
+def simulate_growth(N, T, p, d, m, save_plots = False):
+    """Perform T simulation steps. Returns the grid with the new cell values after T grid updates. If save_plots==True,
+    save each 5th frame in a png file, else no images are created."""
+    # Initialize the grid
+    old_grid = np.zeros((N, N), dtype=int)
     center = N // 2
-    cell_grid[center, center] = 2  # Initial cancer cell
-    cell_grid[40,10] = 2  
-    cell_grid[41,11] = 1 
-    vessel_positions = [(10, 10), (25, 25), (40, 40)] # Random vessel placement (TO BE CHANGED)
-    for x, y in vessel_positions: 
-        oxygen_grid[x, y] = 1.0
-
+    old_grid[center, center] = 1  # Single tumor cell in the center
+    # Tumor growth simulation
     for step in range(T):
-        new_grid = cell_grid.copy()
-        for x in range(N):
-            for y in range(N):
-                if cell_grid[x, y] == 1: # Normal cell
-                    normal_cell_neighbors, cancer_cell_neighbors = count_neighbors(x,y,cell_grid,N)
-                    if normal_cell_neighbors > cancer_cell_neighbors:
-                        local_oxygen_threshold = args.NT1
-                    else: 
-                        local_oxygen_threshold = args.NT2
+        new_grid = old_grid.copy()
+        old_grid = update_grid(old_grid, new_grid, p, d, m)
+        if save_plots:  # Save every 5th step
+            save_frame(old_grid, step)
+    return old_grid
 
-                    if oxygen_grid[x, y] < local_oxygen_threshold:  # Normal cell dies if oxygen is under local threshold
-                        new_grid[x, y] = 0
-                    else:  # Attempts to divide
-                        neighbors = get_neighbors(x, y, N)
-                        empty_neighbors = [(nx, ny) for nx, ny in neighbors if cell_grid[nx, ny] == 0]
-                        if empty_neighbors and np.random.rand() < args.GROWTH_PROBABILITY:
-                            nx, ny = empty_neighbors[np.random.choice(len(empty_neighbors))]
-                            new_grid[nx, ny] = 1 
-
-                elif cell_grid[x, y] == 2:  # Cancer cell
-                    normal_cell_neighbors, cancer_cell_neighbors = count_neighbors(x,y,cell_grid,N)
-                    if cancer_cell_neighbors > normal_cell_neighbors: 
-                        local_oxygen_threshold = args.CT1
-                    else: 
-                        local_oxygen_threshold = args.CT2
-
-                    if oxygen_grid[x, y] < local_oxygen_threshold:  # Cancer cell becomes quiescent if oxgen is under set threshold
-                        new_grid[x, y] = 3 
-                    else:  # Attempts to divide
-                        neighbors = get_neighbors(x, y, N)
-                        empty_neighbors = [(nx, ny) for nx, ny in neighbors if cell_grid[nx, ny] == 0]
-                        if empty_neighbors and np.random.rand() < args.GROWTH_PROBABILITY:
-                            nx, ny = empty_neighbors[np.random.choice(len(empty_neighbors))]
-                            new_grid[nx, ny] = 2
-
-                elif cell_grid[x, y] == 3:  # Quiescent cancer cell
-                    normal_cell_neighbors, cancer_cell_neighbors = count_neighbors(x,y,cell_grid,N)
-                    if cancer_cell_neighbors > normal_cell_neighbors: 
-                        local_oxygen_threshold = args.CT1
-                    else: 
-                        local_oxygen_threshold = args.CT2
-                    
-                    if oxygen_grid[x, y] > local_oxygen_threshold:  # Revives if oxygen increases above threshold
-                        new_grid[x, y] = 2
-                        quiescent_clock[x, y] = 0
-                    else: 
-                        quiescent_clock[x, y] += 1
-                        if quiescent_clock[x, y] > args.QUIESCENCE_TIME:  # Cancer cell dies after too much time without enough oxygen 
-                            new_grid[x, y] = 0
-        cell_grid = new_grid
-        oxygen_grid = update_oxygen(cell_grid, oxygen_grid, args.NORMAL_UPTAKE, args.CANCER_UPTAKE, args.OXYGEN_DIFFUSION)
-        
-        if step % 5 == 0:  # Save every 5th step
-            save_frame(cell_grid, oxygen_grid, step, args.OUTPUT_PATH)
-
-    return cell_grid
-
-def save_gif(output_path, time_steps):
-    """Creates a GIF from the saved frames."""
-    images = [Image.open(f'{output_path}/frame_{step}.png') for step in range(0, time_steps, 5)]
-    gif_path = f'{output_path}/tumor_growth_simulation.gif'
+def save_gif(T):
+    """Create a gif, assuming that images have been created for several time steps of the simulation. """
+    # Create GIF from saved frames
+    output_dir = os.path.join(os.getcwd(), 'data')
+    images = [Image.open(os.path.join(output_dir, f'frame_{step}.png')) for step in range(0, T, 5)]
+    gif_path = os.path.join(output_dir, 'tumor_growth_simulation.gif')
     images[0].save(gif_path, save_all=True, append_images=images[1:], duration=300, loop=0)
 
+    # Display the path to download the GIF
     print(f"GIF saved as: {gif_path}")
 
 if __name__ == '__main__':
     args = parse_args()
-    simulate_growth(args)
-    save_gif(args.OUTPUT_PATH, args.TIME_STEPS)
+    # Parameters
+    N = args.GRID_SIZE  # Size of the grid (default 50x50)
+    T = args.TIME_STEPS  # Number of simulation steps
+    p = args.GROWTH_PROBABILITY  # Probability of tumor cell division
+    d = args.DEATH_PROBABILITY # Probability that a tumor cell dies
+    m = args.MUTATION_PROBABILITY # probabilty that a healthy cell turns into a tumor cell 
+    grid = simulate_growth(N, T, p, d, m, save_plots = True)
+    save_gif(T)
+
