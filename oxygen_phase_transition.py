@@ -51,14 +51,6 @@ def initialize_grid(N, args):
                 else:
                     cell_grid[clump1_center[0] + dx, clump1_center[1] + dy] = 1
 
-    # clump_centers = [(int(N * 0.25), int(N * 0.25)), (int(N * 0.75), int(N * 0.75))]
-    # for center in clump_centers:
-    #     for dx in range(-2, 3):
-    #         for dy in range(-2, 3):
-    #             x, y = center[0] + dx, center[1] + dy
-    #             if 0 <= x < N and 0 <= y < N:
-    #                 cell_grid[x, y] = 1 if np.random.rand() < 0.5 else 2
-
     return cell_grid, oxygen_grid
 
 def get_neighbors(x, y, N): 
@@ -152,7 +144,6 @@ def simulate_growth(args):
                         quiescent_clock[x, y] += 1
                         if quiescent_clock[x, y] > args.QUIESCENCE_TIME:  
                             new_grid[x, y] = 0
-
 
         cell_grid = new_grid
         oxygen_grid = update_oxygen(cell_grid, oxygen_grid, args)

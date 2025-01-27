@@ -5,7 +5,6 @@ from matplotlib.colors import ListedColormap
 from PIL import Image
 from scipy.ndimage import laplace
 from argparse import ArgumentParser, RawTextHelpFormatter
-from scipy.ndimage import label
 
 def parse_args():
     """Parses command-line arguments."""
@@ -51,14 +50,6 @@ def initialize_grid(N, args):
                     cell_grid[clump1_center[0] + dx, clump1_center[1] + dy] = 2
                 else:
                     cell_grid[clump1_center[0] + dx, clump1_center[1] + dy] = 1
-
-    # clump_centers = [(int(N * 0.25), int(N * 0.25)), (int(N * 0.75), int(N * 0.75))]
-    # for center in clump_centers:
-    #     for dx in range(-2, 3):
-    #         for dy in range(-2, 3):
-    #             x, y = center[0] + dx, center[1] + dy
-    #             if 0 <= x < N and 0 <= y < N:
-    #                 cell_grid[x, y] = 1 if np.random.rand() < 0.5 else 2
 
     return cell_grid, oxygen_grid
 
@@ -108,7 +99,6 @@ def save_frame(cell_grid, oxygen_grid, step, output_path):
     '''
     Saves frames for both the cell grid (tumour spread) and oxygen grid. 
     '''
-    # Plots tumour spread with four states (empty space, normal cell, cancer cell, quiescent cell)
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
     cmap = ListedColormap(['#000000', '#F28C8C', '#A83232', '#4A0F0F'])
@@ -122,7 +112,6 @@ def save_frame(cell_grid, oxygen_grid, step, output_path):
         mpatches.Patch(color='#4A0F0F', label='Quiescent Cell')
     ], loc='upper right', fontsize=8)
 
-    # Plots oxygen levels as a resposne to tumour growth
     plt.subplot(1, 2, 2)
     plt.imshow(oxygen_grid, cmap='coolwarm', interpolation='nearest')
     plt.title(f"Oxygen Levels at Step {step}")
@@ -173,7 +162,6 @@ def simulate_growth(args):
 
                 elif cell_grid[x, y] == 3:  # Quiescent cancer cell
                     normal_cell_neighbors, cancer_cell_neighbors = count_neighbors(x, y, cell_grid, N)
-                    #local_oxygen_threshold = args.CT1 if cancer_cell_neighbors > normal_cell_neighbors else args.CT2
                     if oxygen_grid[x, y] > args.CT1: 
                         new_grid[x, y] = 2
                         quiescent_clock[x, y] = 0
@@ -188,7 +176,6 @@ def simulate_growth(args):
 
         if step % 5 == 0:
             save_frame(cell_grid, oxygen_grid, step, args.OUTPUT_PATH)
-            plot_cluster_distribution(cell_grid, step)
 
     final_cancer_cells = np.sum(cell_grid == 2) + np.sum(cell_grid == 3)
     return cell_grid, final_cancer_cells
