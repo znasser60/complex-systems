@@ -5,8 +5,6 @@ from matplotlib.colors import ListedColormap
 from PIL import Image
 from scipy.ndimage import laplace
 from argparse import ArgumentParser, RawTextHelpFormatter
-import pickle
-import os
 
 def parse_args():
     """Parses command-line arguments."""
@@ -31,28 +29,52 @@ def parse_args():
     parser.add_argument('-nt2', dest='NT2', type=float, default=4.5e-3, help='Oxygen threshold for normal cells with cancer neighbors (default: 4.5e-3)')
     parser.add_argument('-ct1', dest='CT1', type=float, default=1.5e-5, help='Oxygen threshold for cancer cells with cancer neighbors (default: 1.5e-5)')
     parser.add_argument('-ct2', dest='CT2', type=float, default=4.5e-5, help='Oxygen threshold for cancer cells with normal neighbors (default: 4.5e-5)')
-    parser.add_argument('-qt', dest='QUIESCENCE_TIME', type=int, default=20, help='Quiescence time for cancer cells (default: 20)')
+    parser.add_argument('-qt', dest='QUIESCENCE_TIME', type=int, default=20, help='Quiescence time for cancer cells (default: 5)')
     parser.add_argument('--output-path', dest='OUTPUT_PATH', type=str, default='./', help='Path to save frames and GIF')
     return parser.parse_args()
 
-def initialize_grid(N): 
+def initialize_grid(args, N, vessel_density=0.05, vessel_radius=3): 
     '''
-    Initializes cellular automata grid with two 5 x 5 clumps of cells where 50% of the clumps are normal cells and the remaining are cancer cells. 
-    Initializes oxygen grid with homogeneous oxygen levels equal to the set initial oxygen level. 
+    Initializes cellular automata grid with two 5 x 5 clumps of cells where 50% of the clumps are normal cells and the remaining are cancer cells.
+    Initializes oxygen grid with inhomogenous oxygen levels ((TO BE DETERMINED)).
     '''
     cell_grid = np.zeros((N, N), dtype=int)
     oxygen_grid = np.full((N, N), args.INITIAL_OXYGEN)
 
-    clump_centers = [(int(N * 0.25), int(N * 0.25)), (int(N * 0.75), int(N * 0.75))]
-    for center in clump_centers:
-        for dx in range(-2, 3):
-            for dy in range(-2, 3):
-                x, y = center[0] + dx, center[1] + dy
-                if 0 <= x < N and 0 <= y < N:
-                    cell_grid[x, y] = 1 if np.random.rand() < 0.5 else 2
+    # Define initial clump 1
+    clump1_center = (int(N * 0.25), int(N * 0.25))  
+    for dx in range(-2, 3):  
+        for dy in range(-2, 3):
+            if (clump1_center[0] + dx >= 0 and clump1_center[0] + dx < N and
+                clump1_center[1] + dy >= 0 and clump1_center[1] + dy < N):
+                if np.random.rand() < 0.5:  
+                    cell_grid[clump1_center[0] + dx, clump1_center[1] + dy] = 2
+                else:
+                    cell_grid[clump1_center[0] + dx, clump1_center[1] + dy] = 1
+
+    # Define initial clump 2 
+    clump2_center = (int(N * 0.75), int(N * 0.75))  
+    for dx in range(-2, 3):  
+        for dy in range(-2, 3):
+            if (clump2_center[0] + dx >= 0 and clump2_center[0] + dx < N and
+                clump2_center[1] + dy >= 0 and clump2_center[1] + dy < N):
+                if np.random.rand() < 0.5:  
+                    cell_grid[clump2_center[0] + dx, clump2_center[1] + dy] = 2
+                else:
+                    cell_grid[clump2_center[0] + dx, clump2_center[1] + dy] = 1
+
+    # Define vessels to create heterogeneous oxygen grid 
+    number_vessels = int(N*N*vessel_density)
+    vessel_position = np.random.choice(N*N, number_vessels, replace=False)
+
+    for position in vessel_position: 
+        x, y = divmod(position, N)
+        for dx in range(-vessel_radius, vessel_radius + 1):
+            for dy in range(-vessel_radius, vessel_radius + 1):
+                if 0 <= x + dx < N and 0 <= y + dy < N and dx**2 + dy**2 <= vessel_radius**2:
+                    oxygen_grid[x + dx, y + dy] = 0.02 # High oxygen level, to be changed (?)
 
     return cell_grid, oxygen_grid
-
 
 def get_neighbors(x, y, N): 
     '''
@@ -89,18 +111,20 @@ def save_frame(cell_grid, oxygen_grid, step, output_path):
     '''
     Saves frames for both the cell grid (tumour spread) and oxygen grid. 
     '''
+
     # Plots tumour spread with four states (empty space, normal cell, cancer cell, quiescent cell)
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
-    cmap = ListedColormap(['#000000', '#c6dbef', '#6baed6', '#1f77b4'])
-    plt.imshow(cell_grid, cmap=cmap, interpolation='nearest', vmin=0, vmax=3)
+    cmap = ListedColormap(['black', 'green', 'yellow', 'purple'])
+    plt.imshow(cell_grid, cmap=cmap, interpolation='nearest', vmin=0, vmax = 3)
     plt.title(f"Cell States at Step {step}")
     plt.axis('off')
+    plt.axis('off')
     plt.legend(handles=[
-        mpatches.Patch(color='#000000', label='Empty Space'),
-        mpatches.Patch(color='#c6dbef', label='Normal Cell'),
-        mpatches.Patch(color='#6baed6', label='Cancer Cell'),
-        mpatches.Patch(color='#1f77b4', label='Quiescent Cell')
+        mpatches.Patch(color='black', label='Empty Space'),
+        mpatches.Patch(color='green', label='Normal Cell'),
+        mpatches.Patch(color='yellow', label='Cancer Cell'),
+        mpatches.Patch(color='purple', label='Quiescent Cell')
     ], loc='upper right', fontsize=8)
 
     # Plots oxygen levels as a resposne to tumour growth
@@ -120,7 +144,7 @@ def simulate_growth(args):
     N = args.GRID_SIZE
     T = args.TIME_STEPS
 
-    cell_grid, oxygen_grid = initialize_grid(N)
+    cell_grid, oxygen_grid = initialize_grid(args, N, vessel_density=0.05, vessel_radius=3)
     quiescent_clock = np.zeros((N, N), dtype=int)
     
     for step in range(T):
@@ -171,47 +195,48 @@ def simulate_growth(args):
     final_cancer_cells = np.sum(cell_grid == 2) + np.sum(cell_grid == 3)
     return cell_grid, final_cancer_cells
 
-def run_oxygen_simulations(args, oxygen_levels, num_simulations=5):
-    '''
-    Runs tumor growth simulations for different oxygen levels with multiple simulations.
-    Saves results to a file for quick re-plotting.
-    '''
-    all_simulation_results = {oxygen: [] for oxygen in oxygen_levels}
-    avg_counts_all_simulations = []
+# def run_oxygen_simulations(args, oxygen_levels, num_simulations=5):
+#     '''
+#     Runs tumor growth simulations for different oxygen levels with multiple simulations.
+#     '''
 
-    plt.figure(figsize=(10, 5))
+#     avg_counts_all_simulations = []
+    
+#     plt.figure(figsize=(10, 5))
 
-    for sim in range(num_simulations): 
-        final_counts_for_simulation = []  
-        for oxygen in oxygen_levels:
-            args.INITIAL_OXYGEN = oxygen  
-            _, final_cancer_cells = simulate_growth(args)  
-            final_counts_for_simulation.append(final_cancer_cells) 
+#     all_simulation_results = {oxygen: [] for oxygen in oxygen_levels}  
 
-            all_simulation_results[oxygen].append(final_cancer_cells)
+#     for sim in range(num_simulations): 
+#         final_counts_for_simulation = []  
+#         for oxygen in oxygen_levels:
+#             args.INITIAL_OXYGEN = oxygen  
+#             _, final_cancer_cells = simulate_growth(args)  
+#             final_counts_for_simulation.append(final_cancer_cells) 
 
-        plt.plot(oxygen_levels, final_counts_for_simulation, color="red", alpha=0.3)
+#             all_simulation_results[oxygen].append(final_cancer_cells)
 
-    for oxygen in oxygen_levels:
-        avg_count = np.mean(all_simulation_results[oxygen]) 
-        avg_counts_all_simulations.append(avg_count)
-
-    plt.plot(oxygen_levels, avg_counts_all_simulations, color="red")
-    transition_index = np.argmax(np.diff(avg_counts_all_simulations))  # Phase transition line (biggest change)
-    plt.axvline(x=oxygen_levels[transition_index], color='black', linestyle='--', label=f'Phase Transition: Oxygen Level {oxygen_levels[transition_index]:.7f}')
-    plt.title("Tumor Growth Simulations Across Varying Oxygen Levels")
-    plt.xlabel("Initial Oxygen Level")
-    plt.ylabel("Final Cancer Cell Count")
-    plt.grid(True)
-    plt.legend()
-    plt.show()
+#         plt.plot(oxygen_levels, final_counts_for_simulation, color="red", alpha=0.3)
+    
+#     for oxygen in oxygen_levels:
+#         avg_count = np.mean(all_simulation_results[oxygen]) 
+#         avg_counts_all_simulations.append(avg_count)
+    
+#     plt.plot(oxygen_levels, avg_counts_all_simulations, color="red")
+#     transition_index = np.argmax(np.diff(avg_counts_all_simulations))  # Phase transition line (biggest change)
+#     plt.axvline(x=oxygen_levels[transition_index], color='black', linestyle='--', label=f'Phase Transition: Oxygen Level {oxygen_levels[transition_index]:.7f}')
+#     plt.title("Tumor Growth Simulations Across Varying Oxygen Levels")
+#     plt.xlabel("Initial Oxygen Level")
+#     plt.ylabel("Final Cancer Cell Count")
+#     plt.grid(True)
+#     plt.legend()
+#     plt.show()
 
 def save_gif(output_path, time_steps):
     '''
     Creates a gif based on saved frames for tumour growth and oxygen grid
     '''
     images = [Image.open(f'{output_path}/frame_{step}.png') for step in range(0, time_steps, 5)]
-    gif_path = f'{output_path}/tumor_growth_simulation.gif'
+    gif_path = f'{output_path}/heterogeneous_tumor_growth_simulation.gif'
     images[0].save(gif_path, save_all=True, append_images=images[1:], duration=300, loop=0)
     print(f"GIF saved as: {gif_path}")
 
@@ -220,5 +245,7 @@ if __name__ == '__main__':
     simulate_growth(args)
     save_gif(args.OUTPUT_PATH, args.TIME_STEPS)
 
-    oxygen_levels = np.linspace(1e-5, 5e-4, 20)
-    run_oxygen_simulations(args, oxygen_levels, num_simulations=5)
+    # oxygen_levels = np.linspace(1e-5, 5e-4, 20)
+    # run_oxygen_simulations(args, oxygen_levels, num_simulations=5)
+
+

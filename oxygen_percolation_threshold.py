@@ -5,8 +5,7 @@ from matplotlib.colors import ListedColormap
 from PIL import Image
 from scipy.ndimage import laplace
 from argparse import ArgumentParser, RawTextHelpFormatter
-import pickle
-import os
+from scipy.ndimage import label
 
 def parse_args():
     """Parses command-line arguments."""
@@ -53,7 +52,6 @@ def initialize_grid(N):
 
     return cell_grid, oxygen_grid
 
-
 def get_neighbors(x, y, N): 
     '''
     Gets the neighbor of each specified cell using Moore's neighborhood. 
@@ -84,34 +82,6 @@ def update_oxygen(cell_grid, oxygen_grid, normal_uptake, cancer_uptake, diffusio
     uptake[cell_grid == 1] = normal_uptake
     uptake[cell_grid == 2] = cancer_uptake
     return np.clip(oxygen_grid + diffusion * laplace(oxygen_grid) - uptake, 0, 1)
-
-def save_frame(cell_grid, oxygen_grid, step, output_path):
-    '''
-    Saves frames for both the cell grid (tumour spread) and oxygen grid. 
-    '''
-    # Plots tumour spread with four states (empty space, normal cell, cancer cell, quiescent cell)
-    plt.figure(figsize=(10, 5))
-    plt.subplot(1, 2, 1)
-    cmap = ListedColormap(['#000000', '#c6dbef', '#6baed6', '#1f77b4'])
-    plt.imshow(cell_grid, cmap=cmap, interpolation='nearest', vmin=0, vmax=3)
-    plt.title(f"Cell States at Step {step}")
-    plt.axis('off')
-    plt.legend(handles=[
-        mpatches.Patch(color='#000000', label='Empty Space'),
-        mpatches.Patch(color='#c6dbef', label='Normal Cell'),
-        mpatches.Patch(color='#6baed6', label='Cancer Cell'),
-        mpatches.Patch(color='#1f77b4', label='Quiescent Cell')
-    ], loc='upper right', fontsize=8)
-
-    # Plots oxygen levels as a resposne to tumour growth
-    plt.subplot(1, 2, 2)
-    plt.imshow(oxygen_grid, cmap='coolwarm', interpolation='nearest')
-    plt.title(f"Oxygen Levels at Step {step}")
-    plt.axis('off')
-    cbar = plt.colorbar()
-    cbar.set_label('Oxygen Concentration', fontsize=8)
-    plt.savefig(f"{output_path}/frame_{step}.png", bbox_inches='tight', pad_inches=0)
-    plt.close()
 
 def simulate_growth(args):
     '''
@@ -165,60 +135,64 @@ def simulate_growth(args):
         cell_grid = new_grid
         oxygen_grid = update_oxygen(cell_grid, oxygen_grid, args.NORMAL_UPTAKE, args.CANCER_UPTAKE, args.OXYGEN_DIFFUSION)
 
-        if step % 5 == 0:
-            save_frame(cell_grid, oxygen_grid, step, args.OUTPUT_PATH)
-
     final_cancer_cells = np.sum(cell_grid == 2) + np.sum(cell_grid == 3)
     return cell_grid, final_cancer_cells
 
-def run_oxygen_simulations(args, oxygen_levels, num_simulations=5):
-    '''
-    Runs tumor growth simulations for different oxygen levels with multiple simulations.
-    Saves results to a file for quick re-plotting.
-    '''
-    all_simulation_results = {oxygen: [] for oxygen in oxygen_levels}
-    avg_counts_all_simulations = []
+def percolation_analysis(cell_grid):
+    """
+    Perform percolation analysis on the tumor grid to identify cancer cell clusters.
+    """
+    cancer_cells = (cell_grid == 2)
+    labeled_grid, num_clusters = label(cancer_cells)
+    cluster_sizes = np.bincount(labeled_grid.ravel())[1:]  # Exclude background cluster (label 0)
+    spans_top_to_bottom = any(
+        np.intersect1d(np.where(labeled_grid[0, :] > 0)[0], np.where(labeled_grid[-1, :] > 0)[0])
+    )
+    spans_left_to_right = any(
+        np.intersect1d(np.where(labeled_grid[:, 0] > 0)[0], np.where(labeled_grid[:, -1] > 0)[0])
+    )
 
-    plt.figure(figsize=(10, 5))
+    percolates = spans_top_to_bottom or spans_left_to_right
+    
+    return num_clusters, cluster_sizes, percolates
 
-    for sim in range(num_simulations): 
-        final_counts_for_simulation = []  
-        for oxygen in oxygen_levels:
-            args.INITIAL_OXYGEN = oxygen  
-            _, final_cancer_cells = simulate_growth(args)  
-            final_counts_for_simulation.append(final_cancer_cells) 
-
-            all_simulation_results[oxygen].append(final_cancer_cells)
-
-        plt.plot(oxygen_levels, final_counts_for_simulation, color="red", alpha=0.3)
+def plot_percolation_threshold(args, oxygen_levels, num_simulations=1):
+    """
+    Plot oxygen levels against the size of the largest cluster to identify the percolation threshold.
+    """
+    largest_cluster_sizes = []
 
     for oxygen in oxygen_levels:
-        avg_count = np.mean(all_simulation_results[oxygen]) 
-        avg_counts_all_simulations.append(avg_count)
+        args.INITIAL_OXYGEN = oxygen  # Set the current oxygen level
+        largest_sizes_for_simulation = []
 
-    plt.plot(oxygen_levels, avg_counts_all_simulations, color="red")
-    transition_index = np.argmax(np.diff(avg_counts_all_simulations))  # Phase transition line (biggest change)
-    plt.axvline(x=oxygen_levels[transition_index], color='black', linestyle='--', label=f'Phase Transition: Oxygen Level {oxygen_levels[transition_index]:.7f}')
-    plt.title("Tumor Growth Simulations Across Varying Oxygen Levels")
-    plt.xlabel("Initial Oxygen Level")
-    plt.ylabel("Final Cancer Cell Count")
-    plt.grid(True)
+        for _ in range(num_simulations):
+            cell_grid, _ = simulate_growth(args)
+            _, cluster_sizes, percolates = percolation_analysis(cell_grid)
+
+            if len(cluster_sizes) > 0:
+                largest_sizes_for_simulation.append(max(cluster_sizes))
+            else:
+                largest_sizes_for_simulation.append(0)
+
+        avg_largest_cluster = np.mean(largest_sizes_for_simulation)
+        largest_cluster_sizes.append(avg_largest_cluster)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(oxygen_levels, largest_cluster_sizes, marker='o', color='blue', label='Largest Cluster Size')
+    percolation_index = np.argmax(np.diff(largest_cluster_sizes))
+    percolation_oxygen = oxygen_levels[percolation_index]
+    plt.axvline(x=percolation_oxygen, color='red', linestyle='--', label=f'Percolation Threshold: {percolation_oxygen:.5f}')
+    plt.title("Percolation Threshold: Largest Cluster Size vs. Oxygen Level")
+    plt.xlabel("Oxygen Level")
+    plt.ylabel("Largest Cluster Size")
     plt.legend()
+    plt.grid(True)
     plt.show()
-
-def save_gif(output_path, time_steps):
-    '''
-    Creates a gif based on saved frames for tumour growth and oxygen grid
-    '''
-    images = [Image.open(f'{output_path}/frame_{step}.png') for step in range(0, time_steps, 5)]
-    gif_path = f'{output_path}/tumor_growth_simulation.gif'
-    images[0].save(gif_path, save_all=True, append_images=images[1:], duration=300, loop=0)
-    print(f"GIF saved as: {gif_path}")
 
 if __name__ == '__main__':
     args = parse_args()
     simulate_growth(args)
-    save_gif(args.OUTPUT_PATH, args.TIME_STEPS)
 
-    oxygen_levels = np.linspace(1e-5, 5e-4, 20)
-    run_oxygen_simulations(args, oxygen_levels, num_simulations=5)
+    oxygen_levels = oxygen_levels = np.linspace(1e-5, 5e-4, 20)
+    plot_percolation_threshold(args, oxygen_levels, num_simulations=1)
