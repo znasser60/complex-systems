@@ -27,18 +27,16 @@ def parse_args():
     parser.add_argument('-T', dest='TIME_STEPS', type=int, default=1000,
         help='number of time steps (default = 100)')
 
-    parser.add_argument('-p', dest='GROWTH_PROBABILITY', type=list, default=[.99, .9, .8, .7, .6, .5, .4, .3, .2, .1 , .01, .001] , 
+    parser.add_argument('-p', dest='GROWTH_PROBABILITY', type=list, default= .4 , 
         help='growth probability, probability that tumor cell divides, (default = 0.3) ')
 
-    parser.add_argument('-d', dest='DEATH_PROBABILITY', type=list, default=[.99, .8,  .5, .3, .1, .01, .001, .0001],
+    parser.add_argument('-d', dest='DEATH_PROBABILITY', type=list, default=[ .99, .8, .7, .7, .6, .5, .4, .3, .2, .1 , .01, .001, .0001 ],
                         help='death probability, probability that tumor cell dies, (default = 0.01) ')
     
-    parser.add_argument('-m', dest = 'MUTATION_PROBABILITY', type = float, default = .0001, 
+    parser.add_argument('-m', dest = 'MUTATION_PROBABILITY', type = float, default = [ .9 , .8, .7,  .6, .5, .4 , .3, .2, .1, .01 , .001 ] , #.1 , .01, .001,  .0001, .00001 ]  ,
                         help = 'mutation probability of a healthy cell into a cancer cell, (default = .00001)')
     return parser.parse_args()
 
-
-# Define neighborhood rule (Moore neighborhood)
 def get_neighbors(x, y, N):
     """
     Get the neighboring coordinates of a given cell in an N x N grid.
@@ -66,10 +64,8 @@ def get_neighbors(x, y, N):
     
     return neighbors
 
-# Probability of a healthy cell mutating into a cancer cell 
 def mutate(p_mutate): 
     return 1 if np.random.rand() < p_mutate else 0
-
 
 def save_frame(grid, step):
     """
@@ -113,7 +109,6 @@ def save_gif(T):
     # Display the path to download the GIF
     print(f"GIF saved as: {gif_path}")
 
-
 def check_perc_cluster(grid):
     """
     Checks if there is a percolating cluster in the grid and returns its size.
@@ -141,7 +136,6 @@ def highlight_cluster(grid, cluster_id):
     highlighted_grid[labeled_grid == cluster_id] = 3  # Use a new value (e.g., 3) for visualization
     return highlighted_grid
 
-
 def find_largest_and_second_largest_components(grid):
     """
     Finds the largest and second largest connected components of tumor cells in the grid.
@@ -164,8 +158,6 @@ def find_largest_and_second_largest_components(grid):
 
     return (largest_component_id, largest_component_size), (second_largest_component_id, second_largest_component_size)
 
-
-
 def simulate_growth(N, T, p, d, m, save_plots = False):
     """
     Simulates the growth and death dynamics on a grid over a specified number of time steps.
@@ -185,9 +177,9 @@ def simulate_growth(N, T, p, d, m, save_plots = False):
     
     
 
-    k = 30  # Number of runs
-    combinations = product(p, d) 
-    ratio_dict = {growth_p / death_p: [] for growth_p, death_p in combinations}
+    k = 30   # Number of runs
+    combinations = product(m, d) 
+    ratio_dict = {growth_m / death_p: [] for growth_m, death_p in combinations}
 
 
     # Map of neighbours for all cells 
@@ -197,11 +189,13 @@ def simulate_growth(N, T, p, d, m, save_plots = False):
     }
     assert isinstance(neighbors_map, dict) and all(isinstance(k, tuple) and isinstance(v, list) for k, v in neighbors_map.items()), "neighbors_map must be a dictionary with tuple keys and list values."
 
-    for growth_p in tqdm(p, desc="Growth Probabilities"):
-        for death_p in tqdm(d, desc="Death Probabilities", leave=False):
-            print(growth_p, death_p)
+    for growth_m in tqdm(m, desc="Mutation Probabilities"):
+        for death_p in d:
+            print(growth_m, death_p)
             for run in range(k):
-                old_grid = np.zeros((N, N), dtype=int)     
+                old_grid = np.zeros((N, N), dtype=int)
+                center = N // 2
+                   
                 percolation_occured = False
                 
                 for step in range(T):
@@ -213,7 +207,7 @@ def simulate_growth(N, T, p, d, m, save_plots = False):
                             
                             for nx, ny in neighbors_map[(x, y)]:
                                 # If neighbors are healthy
-                                if old_grid[nx, ny] == 0 and np.random.rand() < growth_p:
+                                if old_grid[nx, ny] == 0 and np.random.rand() < p:
                                     new_grid[nx, ny] = 1                                    #Infect each neighbor with growth probability
                         
                         if old_grid[x, y] == 1 and np.random.rand() < death_p:
@@ -221,23 +215,20 @@ def simulate_growth(N, T, p, d, m, save_plots = False):
                             new_grid[x, y] = 2
                         
                         elif old_grid[x,y] == 0 : 
-                            new_grid[x,y] = mutate(m)
+                            new_grid[x,y] = mutate(growth_m)
 
                     perlocation, size = check_perc_cluster(old_grid)
         
                     if perlocation:
-                        ratio_dict[growth_p/death_p].append((run, step, size))
+                        ratio_dict[growth_m/death_p].append((run, step, size))
                         percolation_occured = True 
                         break 
-                    
                     old_grid = new_grid
                 if not percolation_occured:
-                    ratio_dict[growth_p/death_p].append((run, T, 0))
+                    ratio_dict[growth_m/death_p].append((run, T, 0))
 
     return ratio_dict
-# Finding comp/grid
        
-
 def plot_growth(gc_portion, second_portion, k):
     """
     Plots the growth of the largest and second largest components over time.
@@ -270,9 +261,7 @@ def plot_growth(gc_portion, second_portion, k):
     plt.savefig(os.path.join('data', f'growth_largest_component_{k}_runs.png'))
     plt.close()
 
-
-
-def plot_percolation(ratio_dict):
+def plot_percolation(ratio_dict, p  ):
     """
     Plots the average size of percolating clusters against the growth/death ratio.
     Parameters:
@@ -283,23 +272,28 @@ def plot_percolation(ratio_dict):
     normalized and mapped to the 'Blues' colormap. The plot is saved as "Ratio_Percolating_size.png" and displayed.
     Returns:
     None
-    """
-    
+    """  
 
     #Initialize figure 
     plt.figure(figsize=(10, 6))
 
     # Get all average sizes to normalize the colormap
     all_avg_sizes = [
+        np.mean([run[2] for run in ratio_dict[key]]) 
+        for key in ratio_dict if ratio_dict[key]
+    ]
+    
+    all_avg_times = [
         np.mean([run[1] for run in ratio_dict[key]]) 
         for key in ratio_dict if ratio_dict[key]
     ]
-    assert all_avg_sizes, "No data to plot."
+    assert all_avg_times, "No data to plot."
+
 
     # Normalize using the min and max of average sizes
-    norm = plt.Normalize(vmin=min(all_avg_sizes), vmax=max(all_avg_sizes))
+    norm = plt.Normalize(vmin=min(all_avg_times), vmax=max(all_avg_times))
     cmap = plt.cm.Blues  # Use the 'Blues' colormap
-
+    
     # Iterate over each growth/death ratio in the dictionary
     for ratio, runs in ratio_dict.items():
         if not runs:
@@ -316,29 +310,22 @@ def plot_percolation(ratio_dict):
         # Get the color based on the average size
         color = 'gray' if avg_time == T else cmap(0.4 + 0.6 * norm(avg_time))  # Scale color to avoid very light shades
 
-        # Plot the point
         plt.scatter(ratio, avg_size, color=color, s=50, alpha=0.8)
 
-    # Add a colorbar to show the mapping of size to color
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-    sm.set_array([])  # Only used to add the colorbar
-    plt.colorbar(sm, label='Average Cluster Size')
 
     # Set log scale for axes
     plt.xscale('log')
-    #plt.yscale('log')
-
+    plt.legend()
     # Add labels, title, and grid
     plt.ylabel('Average Size of Perlocating Cluster', fontsize=14)
-    plt.xlabel('Growth/Death Ratio', fontsize=14)
-    plt.title(' Average Size of perlocating cluster vs. Growth/Death Ratio', fontsize=16)
+    plt.xlabel('mutation/Death Ratio', fontsize=14)
+    plt.title(f' Average Size of perlocating cluster vs. mutation/Death Ratio \n growth  probability = {p}', fontsize=16)
     plt.grid(True)
-    plt.savefig("Ratio_Percolating_size.png")
+    plt.savefig("Ratio_Percolating_size_MUTATION.png")
     # Show the plot
     plt.show()
     plt.close()
 
-    
 
 if __name__ == '__main__':
     args = parse_args()
@@ -349,24 +336,29 @@ if __name__ == '__main__':
     d = args.DEATH_PROBABILITY # Probability that a tumor cell dies
     m = args.MUTATION_PROBABILITY # probabilty that a healthy cell turns into a tumor cell 
     
+
+
+    """
     #Assertions 
     assert isinstance(N, int) and N > 0, "Grid size N must be a positive integer."                # Assert that N is a positive integer
     assert isinstance(T, int) and T > 0, "Number of time steps T must be a positive integer."     # Assert that T is a positive integer
-    assert isinstance(p, list) and all(isinstance(prob, float) and 0 <= prob <= 1 for prob in p), "Growth probabilities p must be a list of floats between 0 and 1."     # Assert that p is a lists of floats between 0 and 1
+    assert isinstance(p, float)  and all(isinstance(prob, float) and 0 <= prob <= 1 for prob in p), "Growth probabilities p must be a list of floats between 0 and 1."     # Assert that p is a lists of floats between 0 and 1
     assert isinstance(d, list) and all(isinstance(prob, float) and 0 <= prob <= 1 for prob in d), "Death probabilities d must be a list of floats between 0 and 1."      # Assert that d is a list of floats between 0 and 1
-    assert isinstance(m, float) and 0 <= m <= 1, "Mutation probability m must be a float between 0 and 1."                                                               # Assert that m is a float between 0 and 1
+    assert isinstance(m, list) and 0 <= m <= 1, "Mutation probability m must be a float between 0 and 1."                                                               # Assert that m is a float between 0 and 1
 
     """
+
     ratio_dict = simulate_growth(N, T, p, d, m, save_plots = True)
     # Run the simmulation and save the ratio_dict to a pickle file
-    with open('ratio_dict.pkl', 'wb') as f:
+    with open('ratio_dict_mutdeath_no_mutation.pkl', 'wb') as f:
         pickle.dump(ratio_dict, f)
-    """
+    
 
     # Load the ratio_dict from the pickle file
-    with open('ratio_dict.pkl', 'rb') as f:
+    with open('ratio_dict_mutdeath_no_mutation.pkl', 'rb') as f:
         ratio_dict = pickle.load(f)
     
     #plot the graph 
-    plot_percolation(ratio_dict)
+    plot_percolation(ratio_dict, p)
+    
 
