@@ -102,12 +102,12 @@ def simulate_growth(N, T, p, d, m, save_plots = False):
             save_frame(old_grid, step)
     return old_grid
 
-def save_gif(T):
+def save_gif(T, N, p, d, m):
     """Create a gif, assuming that images have been created for several time steps of the simulation. """
     # Create GIF from saved frames
     output_dir = os.path.join(os.getcwd(), 'data')
     images = [Image.open(os.path.join(output_dir, f'frame_{step}.png')) for step in range(0, T, 5)]
-    gif_path = os.path.join(output_dir, 'tumor_growth_simulation.gif')
+    gif_path = os.path.join(output_dir, f'tumor_growth_simulation_T{T}_N{N}_p{p}_d{d}_m{m}.gif')
     images[0].save(gif_path, save_all=True, append_images=images[1:], duration=300, loop=0)
 
     # Display the path to download the GIF
@@ -122,5 +122,5 @@ if __name__ == '__main__':
     d = args.DEATH_PROBABILITY # Probability that a tumor cell dies
     m = args.MUTATION_PROBABILITY # probabilty that a healthy cell turns into a tumor cell 
     grid = simulate_growth(N, T, p, d, m, save_plots = True)
-    save_gif(T)
+    save_gif(T, N, p, d, m)
 

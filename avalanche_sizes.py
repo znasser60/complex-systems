@@ -9,7 +9,6 @@ import pandas as pd
 import os
 
 
-
 def parse_args():
     "Parses inputs from commandline and returns them as a Namespace object."
 
@@ -71,14 +70,13 @@ def func_powerlaw(x, a, b):
     return a * x**(-b)
 
 def perform_kstest(avalanche_sizes, popt):
-    unique, counts = np.unique(avalanche_sizes, return_counts=True)
     # Perform KS test
     def cdf_powerlaw(x):
         """Theoretical CDF for the fitted power-law model."""
-        theoretical_pdf = func_powerlaw(unique, *popt)
+        theoretical_pdf = func_powerlaw(x, *popt)
         theoretical_pdf /= np.sum(theoretical_pdf)  # Normalize to get probabilities
         theoretical_cdf = np.cumsum(theoretical_pdf)
-        return np.interp(x, unique, theoretical_cdf)  # Interpolate CDF for all x values
+        return theoretical_cdf
 
     ks_statistic, p_value = kstest(avalanche_sizes, cdf_powerlaw)
     print(f"Kolmogorov-Smirnov statistic: {ks_statistic}")
@@ -222,10 +220,6 @@ if __name__ == '__main__':
             df.to_pickle(filepath)
 
         plot_fits_multiple_p(df)
-
-        # TODO: fit the data to a powerlaw * exponential form and a powerlaw and an exponential function.
-        # TODO: consider which one fits best and plot that one in the aggregated plot.
-        # TODO: expected outcome: around critical point we see power law, otherwise powerlaw*exponential form
 
 
 
