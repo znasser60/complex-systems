@@ -197,6 +197,10 @@ if __name__ == '__main__':
     death_probabilities = args.DEATH_PROBABILITIES  # Number of values assumed for death probability
     num_it = args.NUMBER_OF_EXPERIMENTS # Number of times to repeat one experiment
 
+    assert len(growth_probabilities) == len(death_probabilities), "Number of growth and death " \
+                                                                  "probability values must be equal."
+    assert num_it >= 1, "Must perform at least one experiment."
+
     if len(growth_probabilities) == len(death_probabilities) == 1 :
         analyze_avlanche_distribution(N, T, growth_probabilities[0], death_probabilities[0], num_it)
     else :
