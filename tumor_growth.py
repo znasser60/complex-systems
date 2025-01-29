@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
 from PIL import Image
 from argparse import ArgumentParser, RawTextHelpFormatter
 import os
@@ -72,6 +71,9 @@ def save_frame(grid, step):
 def update_grid(old_grid, new_grid, p, d, m):
     """Iterate through the whole old grid and update new grid where a healthy cell becomes a tumor or
     a tumor cell from the old grid dies."""
+
+    assert np.size(new_grid,1) == np.size(new_grid,0) == np.size(old_grid,1) == np.size(old_grid,0)
+
     N = np.size(old_grid,1)
     # Iterate over cells in random order
     for x, y in np.random.permutation([(i, j) for i in range(N) for j in range(N)]):
@@ -90,6 +92,7 @@ def update_grid(old_grid, new_grid, p, d, m):
 def simulate_growth(N, T, p, d, m, save_plots = False):
     """Perform T simulation steps. Returns the grid with the new cell values after T grid updates. If save_plots==True,
     save each 5th frame in a png file, else no images are created."""
+
     # Initialize the grid
     old_grid = np.zeros((N, N), dtype=int)
     center = N // 2
@@ -120,7 +123,12 @@ if __name__ == '__main__':
     T = args.TIME_STEPS  # Number of simulation steps
     p = args.GROWTH_PROBABILITY  # Probability of tumor cell division
     d = args.DEATH_PROBABILITY # Probability that a tumor cell dies
-    m = args.MUTATION_PROBABILITY # probabilty that a healthy cell turns into a tumor cell 
+    m = args.MUTATION_PROBABILITY # probabilty that a healthy cell turns into a tumor cell
+
+    assert 0 < p < 1, "Growth probability must be greater 0, less than 1"
+    assert 0 < d < 1, "Death probability must be greater 0, less than 1"
+    assert 0 < m < 1, "Mutation probability must be greater 0, less than 1"
+
     grid = simulate_growth(N, T, p, d, m, save_plots = True)
     save_gif(T, N, p, d, m)
 
