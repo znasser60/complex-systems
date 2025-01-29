@@ -20,11 +20,11 @@ def parse_args():
 
     parser.add_argument('-N', dest='GRID_SIZE', type=int, default=100, help='Grid size (default: 100)')
     parser.add_argument('-T', dest='TIME_STEPS', type=int, default=150, help='Number of time steps (default: 150)')
-    parser.add_argument('-p', dest='GROWTH_PROBABILITY', type=float, default=0.6, help='Tumor cell division probability (default: 0.6)')
+    parser.add_argument('-p', dest='GROWTH_PROBABILITY', type=float, default=0.3, help='Tumor cell division probability (default: 0.6)')
     parser.add_argument('-od', dest='OXYGEN_DIFFUSION', type=float, default=2.41e-5, help='Oxygen diffusion coefficient (default: 2.41e-5)')
     parser.add_argument('-cu', dest='CANCER_UPTAKE', type=float, default=1.57e-4, help='Cancer cell oxygen uptake rate (default: 1.57e-4)')
     parser.add_argument('-nu', dest='NORMAL_UPTAKE', type=float, default=1.57e-4, help='Normal cell oxygen uptake rate (default: 1.57e-4)')
-    parser.add_argument('-o', dest='INITIAL_OXYGEN', type=float, default=1.1e-2, help='Initial oxygen concentration (default: 1.1e-2)')
+    parser.add_argument('-o', dest='INITIAL_OXYGEN', type=float, default=1.5e-2, help='Initial oxygen concentration (default: 1.1e-2)')
     parser.add_argument('-nt1', dest='NT1', type=float, default=4.5e-4, help='Oxygen threshold for normal cells with normal neighbors (default: 4.5e-4)')
     parser.add_argument('-nt2', dest='NT2', type=float, default=4.5e-3, help='Oxygen threshold for normal cells with cancer neighbors (default: 4.5e-3)')
     parser.add_argument('-ct1', dest='CT1', type=float, default=1.5e-5, help='Oxygen threshold for cancer cells with cancer neighbors (default: 1.5e-5)')
@@ -90,8 +90,8 @@ def update_oxygen(cell_grid, oxygen_grid, args):
 
     updated_oxygen = np.clip(oxygen_grid + diffusion * laplace(oxygen_grid) - uptake, 0, 1)
 
-    if np.random.rand() < 0.01:  # Reintroduce oxygen randomly
-        updated_oxygen = np.clip(updated_oxygen + 0.001, 0, 1)  # Oxygen replenishment
+    if np.random.rand() < 0.01: 
+        updated_oxygen = np.clip(updated_oxygen + 0.0001, 0, 1)
 
     return updated_oxygen
 
@@ -123,7 +123,18 @@ def save_frame(cell_grid, oxygen_grid, step, output_path):
 
 def simulate_growth(args):
     '''
-    Runs the tumor growth simulation based on stated cellular automata rules.
+    Runs the tumor growth simulation based on stated cellular automata rules. Ouputs final cancer cell count and updated cell grid.
+
+    The rules are as follows: 
+        1. Empty spaces do not evolve directly, cells can only divide into empty spaces to occupy them. 
+        2. The distribution of oxygen follows a PDE equal to (diffusion * laplace(oxygen_grid) - uptake)
+        3. Cells attempt to divide at each timestep if they are not dead. 
+            i. Normal cells will die if the local oxygen falls under a threshold. The threshold is equal to 
+               NT1 when surrounded by other normal cells, and NT2 when surrounded by cancer cells. NT2 > NT1. 
+            ii. Cancer cells will become quiescent if their local oxygen falls under a threshold. The threshold is equal to 
+                CT1 when surrounded by other cancer cells, and CT2 when surrounded by normal cells. CT2 > CT1. 
+            iii. Quiescent cells do not reproduce, and die after a specified time of being quiescent. 
+            iv. If oxygen is sufficient, cells will divide into surrounding empty spaces based on a growth probability.
     '''
     N = args.GRID_SIZE
     T = args.TIME_STEPS
