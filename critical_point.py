@@ -19,9 +19,11 @@ def func_exp_log(x, a, b, c):
 
 def plot_tumor_sizes_vs_ratio(df, T, N):
     # Plotting the results
-    print(df.head)
-    grouped_df = df.groupby('ratio').mean()
-    print(grouped_df.head())
+
+    # Divide p by 8 to adjust for number of neighbors
+    df['ratio'] = df['ratio']/8
+    df['p'] = df['p']/8
+
     #plt.plot(grouped_df.index, grouped_df['tumor_size'], linestyle='-', color='darkgreen', label='avg # tumor cells')
     #plt.plot(grouped_df.index, grouped_df['death_size'], linestyle='-', color='black', label='avg # death cells')
     plt.scatter(df['ratio'], df['tumor_size'], marker='o', color='green', alpha=0.7, label="simulated data")
@@ -43,7 +45,7 @@ def plot_tumor_sizes_vs_ratio(df, T, N):
     plt.plot(x_fit, dy_dx, label=f"Derivative")
 
     plt.xscale('log')
-    plt.axvline(x=1, color='red', linestyle='--', label='Critical Point (p = d)')
+    plt.axvline(x=1, color='red', linestyle='--', label='Theoretical Critical Point (p = d)')
     plt.xlabel('Growth-to-Death Probability Ratio (p/d)')
     plt.ylabel('Final Tumor Size (% of grid size)')
     plt.title("Number of Tumorous Cells vs. Growth-to-Death Probability Ratio \n"

@@ -87,6 +87,7 @@ def perform_kstest(avalanche_sizes, popt):
 def plot_avalanche_distribution(avalanche_sizes, nit, N, T, p, d):
     """Plots the distribution of avalanche sizes and the fit of the powerlaw."""
     unique, counts = np.unique(avalanche_sizes, return_counts=True)
+    unique = unique * 8
     popt, pcov = curve_fit(func_powerlaw, unique, counts, maxfev=2000)
     print(f"fit: a = {popt[0]}, b = {popt[1]}")
 
@@ -99,7 +100,7 @@ def plot_avalanche_distribution(avalanche_sizes, nit, N, T, p, d):
     plt.xlabel('Avalanche Size (Number of Cell Changes)')
     plt.ylabel('Frequency')
     plt.title('Power-Law Fit to Avalanche Size Distribution \n'
-              f'(T={T}, N={N}, p ={p}, d={d}, #Experiments ={nit}) \n'
+              f'(T={T}, N={N}, p ={p*8}, d={d}, #Experiments ={nit}) \n'
               f'KS Statistic: {ks_statistic:.4f}, P-value: {p_value:.2e}')
     plt.grid(True)
     plt.legend()
@@ -159,9 +160,9 @@ def plot_fits_multiple_p(df):
         b = row['b']
         D = row['ks_statistic']
         p_value = row['p_value']
-        ratio = row['ratio']
+        ratio = row['ratio'] #/8 rescale according to number of neighbors
         d = row['d']
-        p = row['p']
+        p = row['p'] #/8 rescale according to number of neighbors
         plt.loglog(x, func_powerlaw(x, a, b), linestyle='-',
                    label=f'd = {d}, ratio={np.round(ratio, 2)}, \n'
                          f'D= {D:.2f}, p-value = {p_value:.2e}, ({a:.2f} x ^(-{b:.2f}))')
@@ -197,11 +198,10 @@ if __name__ == '__main__':
     death_probabilities = args.DEATH_PROBABILITIES  # Number of values assumed for death probability
     num_it = args.NUMBER_OF_EXPERIMENTS # Number of times to repeat one experiment
 
-    assert len(growth_probabilities) == len(death_probabilities), "Number of growth and death " \
-                                                                  "probability values must be equal."
     assert num_it >= 1, "Must perform at least one experiment."
 
-    if len(growth_probabilities) == len(death_probabilities) == 1 :
+    if growth_probabilities is not None and death_probabilities is not None \
+            and len(growth_probabilities) == len(death_probabilities) == 1 :
         analyze_avlanche_distribution(N, T, growth_probabilities[0], death_probabilities[0], num_it)
     else :
         if args.INPUT_FILEPATH is not None:
@@ -215,6 +215,9 @@ if __name__ == '__main__':
             else:
                 print("Error: Input File does not exist!")
         else:
+            assert len(growth_probabilities) == len(death_probabilities), "Number of growth and death " \
+                                                                          "probability values must be equal."
+
             # Data not already generated, start simulation
             df = simulate_multiple_p(N, T, growth_probabilities, death_probabilities, num_it)
             filepath = "data/input/avalanche_sizes_constant_p_different_d.pkl"
