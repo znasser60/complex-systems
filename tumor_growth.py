@@ -54,7 +54,7 @@ def mutate(p_mutate):
     return 1 if np.random.rand() < p_mutate else 0
 
 
-def save_frame(grid, step):
+def save_frame(grid, ratio, step):
     """Save a heatmap of the current grid state. """
     plt.figure(figsize=(5, 5))
     plt.imshow(grid, cmap='viridis', interpolation='nearest', vmin=0, vmax=2)
@@ -65,7 +65,7 @@ def save_frame(grid, step):
     output_dir = os.path.join(os.getcwd(), 'data')
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    plt.savefig(os.path.join(output_dir, f'frame_{step}.png'), bbox_inches='tight', pad_inches=0)
+    plt.savefig(os.path.join(output_dir, f'frame_step_{step}_ratio_{ratio:.6f}.png'), bbox_inches='tight', pad_inches=0)
     plt.close()
 
 def update_grid(old_grid, new_grid, p, d, m):
@@ -97,12 +97,13 @@ def simulate_growth(N, T, p, d, m, save_plots = False):
     old_grid = np.zeros((N, N), dtype=int)
     center = N // 2
     old_grid[center, center] = 1  # Single tumor cell in the center
+
     # Tumor growth simulation
     for step in range(T):
         new_grid = old_grid.copy()
         old_grid = update_grid(old_grid, new_grid, p, d, m)
-        if save_plots:  # Save every 5th step
-            save_frame(old_grid, step)
+        if save_plots and step % 25 == 0:  # Save every 10th step
+            save_frame(old_grid, p/d, step)
     return old_grid
 
 def save_gif(T, N, p, d, m):
@@ -127,7 +128,7 @@ if __name__ == '__main__':
 
     assert 0 < p < 1, "Growth probability must be greater 0, less than 1"
     assert 0 < d < 1, "Death probability must be greater 0, less than 1"
-    assert 0 < m < 1, "Mutation probability must be greater 0, less than 1"
+    assert 0 <= m < 1, "Mutation probability must be greater or equal 0, less than 1"
 
     grid = simulate_growth(N, T, p, d, m, save_plots = True)
     save_gif(T, N, p, d, m)
