@@ -36,12 +36,18 @@ def parse_args():
 def get_neighbors(x, y, N):
     """Given coordinate x and y in a N by N grid, compute the coordinates of all neighbors (Moore neighborhood)."""
     neighbors = []
+
+    assert (0 <= x < N) and (0 <= y < N)
+
     for i in [-1, 0, 1]:
         for j in [-1, 0, 1]:
             if not (i == 0 and j == 0):
                 nx, ny = x + i, y + j
                 if 0 <= nx < N and 0 <= ny < N:
                     neighbors.append((nx, ny))
+
+    # Minimum 3 neighbors if we are in edge of grid
+    assert 3 <= len(neighbors) <= 8
     return neighbors
 
 # Probability of a healthy cell mutating into a cancer cell 
@@ -67,6 +73,10 @@ def update_grid(old_grid, new_grid, p, d, m):
     """Iterate through the whole old grid and update new grid where a healthy cell becomes a tumor or
     a tumor cell from the old grid dies."""
     N = np.size(old_grid,1)
+<<<<<<< HEAD
+=======
+    # Iterate over cells in random order
+>>>>>>> origin/main
     for x, y in np.random.permutation([(i, j) for i in range(N) for j in range(N)]):
         if old_grid[x, y] == 1:  # If I am a tumor cell
            neighbors = get_neighbors(x, y, N)
@@ -95,12 +105,20 @@ def simulate_growth(N, T, p, d, m, save_plots = False):
             save_frame(old_grid, step)
     return old_grid
 
+<<<<<<< HEAD
 def save_gif(T):
+=======
+def save_gif(T, N, p, d, m):
+>>>>>>> origin/main
     """Create a gif, assuming that images have been created for several time steps of the simulation. """
     # Create GIF from saved frames
     output_dir = os.path.join(os.getcwd(), 'data')
     images = [Image.open(os.path.join(output_dir, f'frame_{step}.png')) for step in range(0, T, 5)]
+<<<<<<< HEAD
     gif_path = os.path.join(output_dir, 'tumor_growth_simulation.gif')
+=======
+    gif_path = os.path.join(output_dir, f'tumor_growth_simulation_T{T}_N{N}_p{p}_d{d}_m{m}.gif')
+>>>>>>> origin/main
     images[0].save(gif_path, save_all=True, append_images=images[1:], duration=300, loop=0)
 
     # Display the path to download the GIF
@@ -115,5 +133,9 @@ if __name__ == '__main__':
     d = args.DEATH_PROBABILITY # Probability that a tumor cell dies
     m = args.MUTATION_PROBABILITY # probabilty that a healthy cell turns into a tumor cell 
     grid = simulate_growth(N, T, p, d, m, save_plots = True)
+<<<<<<< HEAD
     save_gif(T)
+=======
+    save_gif(T, N, p, d, m)
+>>>>>>> origin/main
 

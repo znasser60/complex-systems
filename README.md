@@ -21,9 +21,36 @@ Analysis of tumor growth size vs ratio of growth/death probability.
 
 ![Tumorsize_ratio_Np30_Nd30_T30_N50_log](https://github.com/user-attachments/assets/26d07ef0-1b6e-461c-95cf-1db77b9ea78d)
 
+The following plot adds the number of dead cells depending on the ratio of growth/death probability. 
+
+![Tumorsize_ratio_Np20_Nd20_T50_N50_log_with_death](https://github.com/user-attachments/assets/fa2ad329-91b2-408f-b922-fc7a884b6959)
+
 
 ### Input parameters
 Receives input parameters `-N`, `-T`, `-Np`, `-Nd` for grid size, number of time steps, Number of values assumed for growth probability and death probability, respectively. If `-Np=30`, for instance, 30 values for the growth probability p are created. The values are equally spaced between 0.01 and 0.99. 
+
+## avalanche_sizes.py
+Investigate the distribution of avalanche sizes (= number of cell state changes in one time step). Plot the frequency of avalanche sizes on a loglog plot. Fit a powerlaw distribution through the data and evaluate its fit using Kolmogorov-Smirnov test and p-value. 
+
+![avalanche_sizes_dist_N100_T500_p0 3_d0 05_nit_20_loglog](https://github.com/user-attachments/assets/095c2e2b-9257-4fc5-a1ca-fdc41051d4fc)
+
+![image](https://github.com/user-attachments/assets/8068a2e8-08ec-4739-a5ac-738e845121c5)
+
+![image](https://github.com/user-attachments/assets/3ded5735-d3ef-4133-9720-2c54f1313388)
+
+
+
+
+Fitting the model for different parameters of growth and death probabilities: 
+![avalanche_sizes_multiple_p_constant_d_N100_T500_nit_2_loglog](https://github.com/user-attachments/assets/31275915-bce7-418f-b596-281935a8d05f)
+
+![avalanche_sizes_multiple_d_constant_p_N100_T500_nit_2_loglog](https://github.com/user-attachments/assets/ba99e092-04c0-40d9-b935-600a3ca8e148)
+
+
+
+### Input parameters
+Receives input parameters `-N`, `-T`, `-p`, `-d` for grid size, number of time steps, growth probability and death probability, respectively. 
+
 
 
 

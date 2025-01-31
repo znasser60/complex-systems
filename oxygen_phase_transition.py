@@ -1,11 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib.colors import ListedColormap
-from PIL import Image
-from scipy.ndimage import laplace
-from argparse import ArgumentParser, RawTextHelpFormatter
-from tumor_growth_with_oxygen import parse_args, initialize_grid, get_neighbors, count_neighbors, update_oxygen, simulate_growth
+from tumor_growth_with_oxygen import parse_args, simulate_growth
 
 def run_oxygen_simulations(args, oxygen_levels, num_simulations=5):
     '''

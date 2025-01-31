@@ -16,7 +16,7 @@ def parse_args():
     parser.add_argument('-N', dest='GRID_SIZE', type=int, default=50,
         help='grid size (default = 50)')
 
-    parser.add_argument('-T', dest='TIME_STEPS', type=int, default=100,
+    parser.add_argument('-T', dest='TIME_STEPS', type=int, default=50,
         help='number of time steps (default = 100)')
 
     parser.add_argument('-Np', dest='N_GROWTH_PROBABILITIES', type=int, default=20,
@@ -28,17 +28,19 @@ def parse_args():
     return parser.parse_args()
 
 
-def plot(ratios, tumor_sizes, Np, Nd, T, N):
+def plot(ratios, tumor_sizes, death_sizes, Np, Nd, T, N):
     # Plotting the results
-    plt.scatter(ratios, tumor_sizes, marker='o')
+    plt.scatter(ratios, tumor_sizes, marker='o', color='green', label="tumor")
+    plt.scatter(ratios, death_sizes, marker='x', color='black', label="dead")
     plt.xscale('log')
     plt.axvline(x=1, color='red', linestyle='--', label='Critical Point (p = d)')
     plt.xlabel('Growth-to-Death Probability Ratio (p/d)')
     plt.ylabel('Final Tumor Size (% of grid size)')
-    plt.title("Tumor Growth vs. Growth-to-Death Probability Ratio p/d \n"
+    plt.title("Number of Dead and Tumorous Cells vs. Growth-to-Death Probability Ratio \n"
               f"(T = {T})")
     plt.grid(True)
-    plt.savefig(f"data/Tumorsize_ratio_Np{Np}_Nd{Nd}_T{T}_N{N}_log.png")
+    plt.legend(loc="center left")
+    plt.savefig(f"data/Tumorsize_ratio_Np{Np}_Nd{Nd}_T{T}_N{N}_log_with_death.png")
 
 
 if __name__ == '__main__':
@@ -55,7 +57,7 @@ if __name__ == '__main__':
     # Results storage
     ratios = []
     tumor_sizes = []  # Store final tumor size for each growth probability
-    #growth_probabilities = []
+    death_sizes = []
 
     # Run simulations for each growth probability
     for p in growth_probabilities:
@@ -64,10 +66,13 @@ if __name__ == '__main__':
             print(f"ratio p/d = {np.round(p/d, 3)}")
             grid = tg.simulate_growth(N, T, p,d)
             size = np.sum(grid == 1)
+            death_size = np.sum(grid == 2)
             ratios.append(p/d)
-            #growth_probabilities.append(p)
             tumor_sizes.append(size/(N*N))
+            death_sizes.append(death_size/(N*N))
 
-    plot(ratios, tumor_sizes, Np, Nd, T, N)
+    plot(ratios, tumor_sizes, death_sizes, Np, Nd, T, N)
+    # TODO: plot average tumor size, then plot a curve through this, take the derivative of that and plot
+    # the derivative against the ratio
 
 

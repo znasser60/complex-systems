@@ -20,11 +20,11 @@ def parse_args():
 
     parser.add_argument('-N', dest='GRID_SIZE', type=int, default=100, help='Grid size (default: 100)')
     parser.add_argument('-T', dest='TIME_STEPS', type=int, default=150, help='Number of time steps (default: 150)')
-    parser.add_argument('-p', dest='GROWTH_PROBABILITY', type=float, default=0.3, help='Tumor cell division probability (default: 0.6)')
+    parser.add_argument('-p', dest='GROWTH_PROBABILITY', type=float, default=0.6, help='Tumor cell division probability (default: 0.6)')
     parser.add_argument('-od', dest='OXYGEN_DIFFUSION', type=float, default=2.41e-5, help='Oxygen diffusion coefficient (default: 2.41e-5)')
     parser.add_argument('-cu', dest='CANCER_UPTAKE', type=float, default=1.57e-4, help='Cancer cell oxygen uptake rate (default: 1.57e-4)')
     parser.add_argument('-nu', dest='NORMAL_UPTAKE', type=float, default=1.57e-4, help='Normal cell oxygen uptake rate (default: 1.57e-4)')
-    parser.add_argument('-o', dest='INITIAL_OXYGEN', type=float, default=1.5e-2, help='Initial oxygen concentration (default: 1.1e-2)')
+    parser.add_argument('-o', dest='INITIAL_OXYGEN', type=float, default=1.5e-2, help='Initial oxygen concentration (default: 1.5e-2)')
     parser.add_argument('-nt1', dest='NT1', type=float, default=4.5e-4, help='Oxygen threshold for normal cells with normal neighbors (default: 4.5e-4)')
     parser.add_argument('-nt2', dest='NT2', type=float, default=4.5e-3, help='Oxygen threshold for normal cells with cancer neighbors (default: 4.5e-3)')
     parser.add_argument('-ct1', dest='CT1', type=float, default=1.5e-5, help='Oxygen threshold for cancer cells with cancer neighbors (default: 1.5e-5)')
@@ -41,7 +41,7 @@ def initialize_grid(N, args):
     cell_grid = np.zeros((N, N), dtype=int)
     oxygen_grid = np.full((N, N), args.INITIAL_OXYGEN)
 
-    clump1_center = (int(N * 0.5), int(N * 0.5))  
+    clump_center = (int(N * 0.5), int(N * 0.5))  
     for dx in range(-2, 3):  
         for dy in range(-2, 3):
             if (clump1_center[0] + dx >= 0 and clump1_center[0] + dx < N and
@@ -121,7 +121,8 @@ def save_frame(cell_grid, oxygen_grid, step, output_path):
     plt.savefig(f"{output_path}/frame_{step}.png", bbox_inches='tight', pad_inches=0)
     plt.close()
 
-def simulate_growth(args):
+
+def simulate_growth(args, max_time=None):
     '''
     Runs the tumor growth simulation based on stated cellular automata rules. Ouputs final cancer cell count and updated cell grid.
 
@@ -137,7 +138,7 @@ def simulate_growth(args):
             iv. If oxygen is sufficient, cells will divide into surrounding empty spaces based on a growth probability.
     '''
     N = args.GRID_SIZE
-    T = args.TIME_STEPS
+    T = args.TIME_STEPS if max_time is None else max_time
 
     cell_grid, oxygen_grid = initialize_grid(N, args)
     quiescent_clock = np.zeros((N, N), dtype=int)
@@ -146,8 +147,8 @@ def simulate_growth(args):
         new_grid = cell_grid.copy()
         for x in range(N):
             for y in range(N):
+                normal_cell_neighbors, cancer_cell_neighbors = count_neighbors(x, y, cell_grid, N)
                 if cell_grid[x, y] == 1:  # Normal cell
-                    normal_cell_neighbors, cancer_cell_neighbors = count_neighbors(x, y, cell_grid, N)
                     local_oxygen_threshold = args.NT1 if normal_cell_neighbors > cancer_cell_neighbors else args.NT2
                     if oxygen_grid[x, y] < local_oxygen_threshold:  
                         new_grid[x, y] = 0
@@ -160,7 +161,6 @@ def simulate_growth(args):
                             new_grid[nx, ny] = 1
 
                 elif cell_grid[x, y] == 2:  # Cancer cell
-                    normal_cell_neighbors, cancer_cell_neighbors = count_neighbors(x, y, cell_grid, N)
                     local_oxygen_threshold = args.CT1 if cancer_cell_neighbors > normal_cell_neighbors else args.CT2
                     if oxygen_grid[x, y] < local_oxygen_threshold: 
                         new_grid[x, y] = 3
@@ -170,9 +170,8 @@ def simulate_growth(args):
                         if empty_neighbors and np.random.rand() < args.GROWTH_PROBABILITY:
                             nx, ny = empty_neighbors[np.random.choice(len(empty_neighbors))]
                             new_grid[nx, ny] = 2
-
+                        
                 elif cell_grid[x, y] == 3:  # Quiescent cancer cell
-                    normal_cell_neighbors, cancer_cell_neighbors = count_neighbors(x, y, cell_grid, N)
                     if oxygen_grid[x, y] > args.CT1: 
                         new_grid[x, y] = 2
                         quiescent_clock[x, y] = 0
@@ -181,13 +180,12 @@ def simulate_growth(args):
                         if quiescent_clock[x, y] > args.QUIESCENCE_TIME:  
                             new_grid[x, y] = 0
 
-
         cell_grid = new_grid
         oxygen_grid = update_oxygen(cell_grid, oxygen_grid, args)
-
+    
         if step % 5 == 0:
             save_frame(cell_grid, oxygen_grid, step, args.OUTPUT_PATH)
-
+    
     final_cancer_cells = np.sum(cell_grid == 2) + np.sum(cell_grid == 3)
     return cell_grid, final_cancer_cells
 
