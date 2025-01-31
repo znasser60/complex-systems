@@ -9,9 +9,9 @@ def parse_args():
 
     parser = ArgumentParser(prog = 'python3 tumor_growth.py',
         formatter_class = RawTextHelpFormatter, description =
-        '  Simulate tumor growth given arguments for growth probability, grid size and number of time steps.\n\n'
+        '  Simulate tumor growth given arguments for growth, death and mutation probability, grid size and number of time steps.\n\n'
         '  Example syntax:\n'
-        '    python3 tumor_growth.py -N 50 -T 100 -p 0.1 -d 0.01\n')
+        '    python3 tumor_growth.py -N 50 -T 100 -p 0.1 -d 0.01 -m 0 \n')
 
     # Optionals
     parser.add_argument('-N', dest='GRID_SIZE', type=int, default=50,
@@ -23,8 +23,8 @@ def parse_args():
     parser.add_argument('-p', dest='GROWTH_PROBABILITY', type=float, default=0.3,
         help='growth probability, probability that tumor cell divides, (default = 0.3) ')
 
-    parser.add_argument('-d', dest='DEATH_PROBABILITY', type=float, default=0.01,
-                        help='death probability, probability that tumor cell dies, (default = 0.01) ')
+    parser.add_argument('-d', dest='DEATH_PROBABILITY', type=float, default=0.1,
+                        help='death probability, probability that tumor cell dies, (default = 0.1) ')
     
     parser.add_argument('-m', dest = 'MUTATION_PROBABILITY', type = float, default = .00001, 
                         help = 'mutation probability of a healthy cell into a cancer cell, (default = .00001)')
@@ -33,7 +33,7 @@ def parse_args():
 
 # Define neighborhood rule (Moore neighborhood)
 def get_neighbors(x, y, N):
-    """Given coordinate x and y in a N by N grid, compute the coordinates of all neighbors (Moore neighborhood)."""
+    """Given coordinate x and y in a N by N grid, return the coordinates of all neighbors (Moore neighborhood)."""
     neighbors = []
 
     assert (0 <= x < N) and (0 <= y < N)
@@ -50,11 +50,12 @@ def get_neighbors(x, y, N):
     return neighbors
 
 # Probability of a healthy cell mutating into a cancer cell 
-def mutate(p_mutate): 
-    return 1 if np.random.rand() < p_mutate else 0
+def mutate(m):
+    """Return 1 if this cell mutates according to probability m. """
+    return 1 if np.random.rand() < m else 0
 
 
-def save_frame(grid, ratio, step):
+def save_frame(grid, step):
     """Save a heatmap of the current grid state. """
     plt.figure(figsize=(5, 5))
     plt.imshow(grid, cmap='viridis', interpolation='nearest', vmin=0, vmax=2)
@@ -65,7 +66,7 @@ def save_frame(grid, ratio, step):
     output_dir = os.path.join(os.getcwd(), 'data')
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    plt.savefig(os.path.join(output_dir, f'frame_step_{step}_ratio_{ratio:.6f}.png'), bbox_inches='tight', pad_inches=0)
+    plt.savefig(os.path.join(output_dir, f'frame_{step}.png'), bbox_inches='tight', pad_inches=0)
     plt.close()
 
 def update_grid(old_grid, new_grid, p, d, m):
@@ -102,12 +103,12 @@ def simulate_growth(N, T, p, d, m, save_plots = False):
     for step in range(T):
         new_grid = old_grid.copy()
         old_grid = update_grid(old_grid, new_grid, p, d, m)
-        if save_plots and step % 25 == 0:  # Save every 10th step
-            save_frame(old_grid, p/d, step)
+        if save_plots and step % 5 == 0:  # Save every 5th step
+            save_frame(old_grid, step)
     return old_grid
 
 def save_gif(T, N, p, d, m):
-    """Create a gif, assuming that images have been created for several time steps of the simulation. """
+    """Create a gif, assuming that images have been created for each 5th time step of the simulation. """
     # Create GIF from saved frames
     output_dir = os.path.join(os.getcwd(), 'data')
     images = [Image.open(os.path.join(output_dir, f'frame_{step}.png')) for step in range(0, T, 5)]

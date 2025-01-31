@@ -2,7 +2,6 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import tumor_growth as tg
-from argparse import ArgumentParser, RawTextHelpFormatter
 import pandas as pd
 from avalanche_sizes import parse_args
 from scipy.optimize import curve_fit
@@ -14,26 +13,26 @@ def func_log(x, a, b):
     return a + b * np.log(x)
 
 def func_exp_log(x, a, b, c):
-    """Fit function exp of polynomial plus log """
+    """Evaluate x at exponential function (Best fit from Levenberg-Marquardt algorithm, see
+    https://www.standardsapplied.com/nonlinear-curve-fitting-calculator.html)"""
     return math.e**(a + b * 1/x + c * np.log(x))
 
 def plot_tumor_sizes_vs_ratio(df, T, N):
+    """Plot the tumor sizes for different ratios and fit curve through the data. """
     # Plotting the results
 
     # Divide p by 8 to adjust for number of neighbors
     df['ratio'] = df['ratio']/8
     df['p'] = df['p']/8
 
-    #plt.plot(grouped_df.index, grouped_df['tumor_size'], linestyle='-', color='darkgreen', label='avg # tumor cells')
-    #plt.plot(grouped_df.index, grouped_df['death_size'], linestyle='-', color='black', label='avg # death cells')
     plt.scatter(df['ratio'], df['tumor_size'], marker='o', color='green', alpha=0.7, label="simulated data")
     #plt.scatter(df['ratio'], df['death_size'], marker='x', color='black', alpha=0.7, label="dead")
 
-    # Fit logarithmic curve
+    # Fit curve, note: needs multiple ratios (>= 10 or so) to fit curve effectively
     popt, pcov = curve_fit(func_exp_log, df['ratio'], df['tumor_size'], maxfev=2000)
     print(f"fit: a = {popt[0]}, b = {popt[1]}, c={popt[1]}")
 
-    # calculate new x's and y's
+    # Calculate new fitted data
     x_fit = np.linspace(df['ratio'].min(), df['ratio'].max(), 50)
     y_fit = func_exp_log(x_fit, *popt)
 
@@ -41,7 +40,7 @@ def plot_tumor_sizes_vs_ratio(df, T, N):
                                  f"(exp({popt[0]:.2f} * {popt[1]:.2f}/x + {popt[2]:.2f} * log(x))")
 
     # calculate derivative
-    dy_dx = np.gradient(y_fit) / np.gradient(x_fit) # TODO: check this! 
+    dy_dx = np.gradient(y_fit) / np.gradient(x_fit)
     plt.plot(x_fit, dy_dx, label=f"Derivative")
 
     plt.xscale('log')
@@ -110,10 +109,6 @@ if __name__ == '__main__':
         if directory:  # Avoid creating a directory if input_file has no directory specified
             os.makedirs(directory, exist_ok=True)
         df.to_pickle(filepath)
-
-    df.to_csv(f"data/input/phase_transition_tumor_size_N{N}_T{T}.csv", sep="\t")
-    df['ratio'].to_csv(f"data/input/phase_transition_ratio_N{N}_T{T}.csv", index=False)
-    df['tumor_size'].to_csv(f"data/input/tumor_size_N{N}_T{T}.csv", index=False)
 
     plot_tumor_sizes_vs_ratio(df, T, N)
 
