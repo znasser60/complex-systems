@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
 from PIL import Image
 from argparse import ArgumentParser, RawTextHelpFormatter
 import os
@@ -10,9 +9,9 @@ def parse_args():
 
     parser = ArgumentParser(prog = 'python3 tumor_growth.py',
         formatter_class = RawTextHelpFormatter, description =
-        '  Simulate tumor growth given arguments for growth probability, grid size and number of time steps.\n\n'
+        '  Simulate tumor growth given arguments for growth, death and mutation probability, grid size and number of time steps.\n\n'
         '  Example syntax:\n'
-        '    python3 tumor_growth.py -N 50 -T 100 -p 0.1 -d 0.01\n')
+        '    python3 tumor_growth.py -N 50 -T 100 -p 0.1 -d 0.01 -m 0 \n')
 
     # Optionals
     parser.add_argument('-N', dest='GRID_SIZE', type=int, default=50,
@@ -24,8 +23,8 @@ def parse_args():
     parser.add_argument('-p', dest='GROWTH_PROBABILITY', type=float, default=0.3,
         help='growth probability, probability that tumor cell divides, (default = 0.3) ')
 
-    parser.add_argument('-d', dest='DEATH_PROBABILITY', type=float, default=0.01,
-                        help='death probability, probability that tumor cell dies, (default = 0.01) ')
+    parser.add_argument('-d', dest='DEATH_PROBABILITY', type=float, default=0.1,
+                        help='death probability, probability that tumor cell dies, (default = 0.1) ')
     
     parser.add_argument('-m', dest = 'MUTATION_PROBABILITY', type = float, default = .00001, 
                         help = 'mutation probability of a healthy cell into a cancer cell, (default = .00001)')
@@ -34,7 +33,7 @@ def parse_args():
 
 # Define neighborhood rule (Moore neighborhood)
 def get_neighbors(x, y, N):
-    """Given coordinate x and y in a N by N grid, compute the coordinates of all neighbors (Moore neighborhood)."""
+    """Given coordinate x and y in a N by N grid, return the coordinates of all neighbors (Moore neighborhood)."""
     neighbors = []
 
     assert (0 <= x < N) and (0 <= y < N)
@@ -51,8 +50,9 @@ def get_neighbors(x, y, N):
     return neighbors
 
 # Probability of a healthy cell mutating into a cancer cell 
-def mutate(p_mutate): 
-    return 1 if np.random.rand() < p_mutate else 0
+def mutate(m):
+    """Return 1 if this cell mutates according to probability m. """
+    return 1 if np.random.rand() < m else 0
 
 
 def save_frame(grid, step):
@@ -72,11 +72,11 @@ def save_frame(grid, step):
 def update_grid(old_grid, new_grid, p, d, m):
     """Iterate through the whole old grid and update new grid where a healthy cell becomes a tumor or
     a tumor cell from the old grid dies."""
+
+    assert np.size(new_grid,1) == np.size(new_grid,0) == np.size(old_grid,1) == np.size(old_grid,0)
+
     N = np.size(old_grid,1)
-<<<<<<< HEAD
-=======
     # Iterate over cells in random order
->>>>>>> origin/main
     for x, y in np.random.permutation([(i, j) for i in range(N) for j in range(N)]):
         if old_grid[x, y] == 1:  # If I am a tumor cell
            neighbors = get_neighbors(x, y, N)
@@ -93,32 +93,26 @@ def update_grid(old_grid, new_grid, p, d, m):
 def simulate_growth(N, T, p, d, m, save_plots = False):
     """Perform T simulation steps. Returns the grid with the new cell values after T grid updates. If save_plots==True,
     save each 5th frame in a png file, else no images are created."""
+
     # Initialize the grid
     old_grid = np.zeros((N, N), dtype=int)
     center = N // 2
     old_grid[center, center] = 1  # Single tumor cell in the center
+
     # Tumor growth simulation
     for step in range(T):
         new_grid = old_grid.copy()
         old_grid = update_grid(old_grid, new_grid, p, d, m)
-        if save_plots:  # Save every 5th step
+        if save_plots and step % 5 == 0:  # Save every 5th step
             save_frame(old_grid, step)
     return old_grid
 
-<<<<<<< HEAD
-def save_gif(T):
-=======
 def save_gif(T, N, p, d, m):
->>>>>>> origin/main
-    """Create a gif, assuming that images have been created for several time steps of the simulation. """
+    """Create a gif, assuming that images have been created for each 5th time step of the simulation. """
     # Create GIF from saved frames
     output_dir = os.path.join(os.getcwd(), 'data')
     images = [Image.open(os.path.join(output_dir, f'frame_{step}.png')) for step in range(0, T, 5)]
-<<<<<<< HEAD
-    gif_path = os.path.join(output_dir, 'tumor_growth_simulation.gif')
-=======
     gif_path = os.path.join(output_dir, f'tumor_growth_simulation_T{T}_N{N}_p{p}_d{d}_m{m}.gif')
->>>>>>> origin/main
     images[0].save(gif_path, save_all=True, append_images=images[1:], duration=300, loop=0)
 
     # Display the path to download the GIF
@@ -131,11 +125,12 @@ if __name__ == '__main__':
     T = args.TIME_STEPS  # Number of simulation steps
     p = args.GROWTH_PROBABILITY  # Probability of tumor cell division
     d = args.DEATH_PROBABILITY # Probability that a tumor cell dies
-    m = args.MUTATION_PROBABILITY # probabilty that a healthy cell turns into a tumor cell 
+    m = args.MUTATION_PROBABILITY # probabilty that a healthy cell turns into a tumor cell
+
+    assert 0 < p < 1, "Growth probability must be greater 0, less than 1"
+    assert 0 < d < 1, "Death probability must be greater 0, less than 1"
+    assert 0 <= m < 1, "Mutation probability must be greater or equal 0, less than 1"
+
     grid = simulate_growth(N, T, p, d, m, save_plots = True)
-<<<<<<< HEAD
-    save_gif(T)
-=======
     save_gif(T, N, p, d, m)
->>>>>>> origin/main
 
