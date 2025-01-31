@@ -41,7 +41,7 @@ def initialize_grid(N, args):
     cell_grid = np.zeros((N, N), dtype=int)
     oxygen_grid = np.full((N, N), args.INITIAL_OXYGEN)
 
-    clump_center = (int(N * 0.5), int(N * 0.5))  
+    clump1_center = (int(N * 0.5), int(N * 0.5))  
     for dx in range(-2, 3):  
         for dy in range(-2, 3):
             if (clump1_center[0] + dx >= 0 and clump1_center[0] + dx < N and
