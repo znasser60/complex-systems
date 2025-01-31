@@ -4,8 +4,8 @@ from tumor_growth_with_oxygen import parse_args, simulate_growth
 
 def run_oxygen_simulations(args, oxygen_levels, num_simulations=5):
     '''
-    Runs tumor growth simulations for different oxygen levels with multiple simulations.
-    Saves results to a file for quick re-plotting.
+    Runs tumor growth simulations for different oxygen levels with multiple simulations. 
+    Plots final cancer counts for each cell type. 
     '''
 
     all_simulation_results = {oxygen: [] for oxygen in oxygen_levels}

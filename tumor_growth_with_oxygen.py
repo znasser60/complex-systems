@@ -121,7 +121,6 @@ def save_frame(cell_grid, oxygen_grid, step, output_path):
     plt.savefig(f"{output_path}/frame_{step}.png", bbox_inches='tight', pad_inches=0)
     plt.close()
 
-
 def simulate_growth(args, max_time=None):
     '''
     Runs the tumor growth simulation based on stated cellular automata rules. Ouputs final cancer cell count and updated cell grid.

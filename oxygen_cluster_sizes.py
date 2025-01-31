@@ -27,7 +27,7 @@ def analyze_clusters(cell_grid):
 
 def plot_clusters(cluster_data, time_steps):
     """
-    Plot the largest cluster fraction for each cell type over time with error bars.
+    Plot the largest cluster fraction for each cell type over time with shaded error areas. 
     """
 
     _, axes = plt.subplots(1, 3, figsize=(18, 6))

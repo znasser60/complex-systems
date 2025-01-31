@@ -30,6 +30,9 @@ def box_counting_fractal_dimension(grid, min_box_size=1, max_box_size=50):
     return fractal_dimension
 
 def calculate_fractal_dimensions(args, num_simulations=10):
+    '''
+    Calculates fractal dimensions for a number of simulations (defaults to 10) for various oxygen levels to determine when complexity is greatest. 
+    '''
     fractal_dimensions = []
     oxygen_levels = np.linspace(1e-6, 1e-3, 20)
     all_fractal_dimensions = []
