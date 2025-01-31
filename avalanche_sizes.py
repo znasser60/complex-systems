@@ -107,8 +107,12 @@ def plot_avalanche_distribution(avalanche_sizes, nit, N, T, p, d):
     plt.savefig(f"data/avalanche_sizes_dist_N{N}_T{T}_p{p}_d{d}_nit_{nit}_loglog.png")
 
 def simulate_multiple_p(N, T, growth_probabilities, death_probabilities, num_it):
-    """Take Np different parameters of growth probability and get the distribution of the avalanche sizes.
+    """For each pair of growth and death probabilities (i.e. as many pairs as
+    len(growth_probabilities) == len(death_probabilities),
+     simulate the tumor growth and get the distribution of the avalanche sizes.
     Fit a power law through the distribution and plot the curve and the goodness-of-fit statistics in one plot."""
+
+    assert len(growth_probabilities) == len(death_probabilities)
 
     pd_params = zip(growth_probabilities, death_probabilities)
 
@@ -149,6 +153,28 @@ def simulate_multiple_p(N, T, growth_probabilities, death_probabilities, num_it)
     return pd.DataFrame(results)
 
 
+def plot_slope_multiple_p(df):
+    """Plot the exponent of the power law function that is fitted through the data for various p/d ratios."""
+    plt.figure(figsize=(11, 6))
+    plt.subplot(1,2,1)
+    plt.plot(df['ratio'], df['b'], marker='o')
+    plt.xlabel("Growth vs. Death Probability Ratio (p/d)")
+    plt.suptitle("Exponent of Power Law Fit and P-Value vs. p/d Ratio \n"
+               "(T=500, N=100, #Experiments = 2)")
+    plt.title("Exponent")
+    plt.ylabel("Exponent of Power Law Fit")
+
+    plt.subplot(1,2,2)
+    plt.plot(df['ratio'], df['p_value'], marker='o')
+    plt.title("P-Value")
+    plt.yscale('log')
+    #plt.tight_layout()
+    plt.xlabel("Growth vs. Death Probability Ratio (p/d)")
+    plt.ylabel("P-Value of KS-Test")
+    plt.savefig("data/avalanche_sizes_exponent_vs_ratios.png")
+    plt.close()
+
+
 def plot_fits_multiple_p(df):
     """Plot multiple power law fits for multiple ratios of growth and death probability."""
     min_avalanches = 1
@@ -160,9 +186,9 @@ def plot_fits_multiple_p(df):
         b = row['b']
         D = row['ks_statistic']
         p_value = row['p_value']
-        ratio = row['ratio'] #/8 rescale according to number of neighbors
+        ratio = row['ratio'] *8 #rescale according to number of neighbors
         d = row['d']
-        p = row['p'] #/8 rescale according to number of neighbors
+        p = row['p'] *8 # rescale according to number of neighbors
         plt.loglog(x, func_powerlaw(x, a, b), linestyle='-',
                    label=f'd = {d}, ratio={np.round(ratio, 2)}, \n'
                          f'D= {D:.2f}, p-value = {p_value:.2e}, ({a:.2f} x ^(-{b:.2f}))')
@@ -220,13 +246,13 @@ if __name__ == '__main__':
 
             # Data not already generated, start simulation
             df = simulate_multiple_p(N, T, growth_probabilities, death_probabilities, num_it)
-            filepath = "data/input/avalanche_sizes_constant_p_different_d.pkl"
+            filepath = "data/input/avalanche_sizes_constant_p_different_d_new.pkl"
             directory = os.path.dirname(filepath)
             if directory:  # Avoid creating a directory if input_file has no directory specified
                 os.makedirs(directory, exist_ok=True)
             df.to_pickle(filepath)
 
-        plot_fits_multiple_p(df)
+        plot_slope_multiple_p(df)
 
 
 
