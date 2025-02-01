@@ -11,7 +11,7 @@ import pickle
 
 
 
-def parse_args():
+def parse_args_components():
     "Parses inputs from commandline and returns them as a Namespace object."
 
     parser = ArgumentParser(prog = 'python3 tumor_growth.py',
