@@ -177,7 +177,7 @@ def simulate_growth(N, T, p, d, m, save_plots = False):
     
     
 
-    k = 30   # Number of runs
+    k = 30  # Number of runs
     combinations = product(m, d) 
     ratio_dict = {growth_m / death_p: [] for growth_m, death_p in combinations}
 
@@ -348,14 +348,14 @@ if __name__ == '__main__':
 
     """
 
-    ratio_dict = simulate_growth(N, T, p, d, m, save_plots = True)
+    #ratio_dict = simulate_growth(N, T, p, d, m, save_plots = True)
     # Run the simmulation and save the ratio_dict to a pickle file
-    with open('ratio_dict_mutdeath_no_mutation.pkl', 'wb') as f:
-        pickle.dump(ratio_dict, f)
+    #with open('ratio_dict_mutdeath_no_mutiation.pkl', 'wb') as f:
+    #,    pickle.dump(ratio_dict, f)
     
 
     # Load the ratio_dict from the pickle file
-    with open('ratio_dict_mutdeath_no_mutation.pkl', 'rb') as f:
+    with open(os.join('graphs_and_dicts', 'ratio_dict_mutdeath_no_mutation.pkl'), 'rb') as f:
         ratio_dict = pickle.load(f)
     
     #plot the graph 

@@ -24,16 +24,16 @@ def parse_args():
     parser.add_argument('-N', dest='GRID_SIZE', type=int, default=50,
         help='grid size (default = 50)')
 
-    parser.add_argument('-T', dest='TIME_STEPS', type=int, default=1000,
+    parser.add_argument('-T', dest='TIME_STEPS', type=int, default=150,
         help='number of time steps (default = 100)')
 
-    parser.add_argument('-p', dest='GROWTH_PROBABILITY', type=list, default= .4 , 
+    parser.add_argument('-p', dest='GROWTH_PROBABILITY', type=list, default= .3 , 
         help='growth probability, probability that tumor cell divides, (default = 0.3) ')
 
-    parser.add_argument('-d', dest='DEATH_PROBABILITY', type=list, default=.1,
+    parser.add_argument('-d', dest='DEATH_PROBABILITY', type=list, default=.01,
                         help='death probability, probability that tumor cell dies, (default = 0.01) ')
     
-    parser.add_argument('-m', dest = 'MUTATION_PROBABILITY', type = float, default =   .01  ,
+    parser.add_argument('-m', dest = 'MUTATION_PROBABILITY', type = float, default =   0  ,
                         help = 'mutation probability of a healthy cell into a cancer cell, (default = .00001)')
     return parser.parse_args()
 
@@ -177,7 +177,7 @@ def simulate_growth(N, T, p, d, m, save_plots = False):
     
     
 
-    k = 1  # Number of runs
+    k = 100   # Number of runs
 
 
     # Map of neighbours for all cells 
@@ -188,20 +188,16 @@ def simulate_growth(N, T, p, d, m, save_plots = False):
     
     gc_portion = [[] for _ in range(k)]
     second_portion = [[] for _ in range(k)]
-    print(gc_portion)
     
     for run in range(k):
-        print(k)
         old_grid = np.zeros((N, N), dtype=int)
         center = N // 2
+        old_grid[center, center] = 1 
+
                    
-        for step in range(T):
-            
+        for step in tqdm(range(T), desc=f"Run {run+1}/{k}"):
             new_grid = old_grid.copy()
-            largest, second_largest = find_largest_and_second_largest_components(new_grid)
-            print(largest[1])
-            gc_portion[run].append(largest[1])
-            second_portion[run].append(second_largest[1])
+                        
 
             for x, y in np.random.permutation([(i, j) for i in range(N) for j in range(N)]):
                 
@@ -218,9 +214,13 @@ def simulate_growth(N, T, p, d, m, save_plots = False):
                 
                 elif old_grid[x,y] == 0 : 
                     new_grid[x,y] = mutate(m)
-
             
-    print(gc_portion, second_portion)
+
+            largest, second_largest = find_largest_and_second_largest_components(new_grid)
+            gc_portion[run].append(largest[1])
+            second_portion[run].append(second_largest[1])
+            old_grid = new_grid
+            
     return gc_portion, second_portion
        
 def plot_growth(gc_portion, second_portion, k):
@@ -238,21 +238,22 @@ def plot_growth(gc_portion, second_portion, k):
     # Plot the portion of the grid occupied by the largest component over time
     plt.figure(figsize=(10, 6))
     for i in range(len(gc_portion)): 
-        plt.plot(gc_portion[i], alpha=0.1, color="orange")
-        plt.plot(second_portion[i],alpha=0.1, color="blue")
+        plt.plot(gc_portion[i], alpha=0.05, color="orange")
+        plt.plot(second_portion[i],alpha=0.05, color="blue")
     
     # Calculate and plot averages
     avg_gc_portion = np.mean(gc_portion, axis=0)
     avg_second_portion = np.mean(second_portion, axis=0)
     plt.plot(avg_gc_portion, label="Average Largest component", color="orange", linewidth=2)
+
     plt.plot(avg_second_portion, label="Average Second component", color="blue", linewidth=2)
     
     plt.xlabel('Time Steps')
-    plt.ylabel('Portion of Grid')
-    plt.title(f'Growth of the Largest Tumor Component Over Time {k}')
+    plt.ylabel('Component Size (cells)')
+    plt.title(f'Growth of the Largest Tumor Component Over {k} steps (No Mutation)')
     plt.legend()
     plt.grid(True)
-    plt.savefig(os.path.join('data', f'growth_largest_component_{k}_runs.png'))
+    plt.savefig(f'growth_largest_component_{k}_runs_nomut.png')
     plt.close()
 
 def plot_percolation(ratio_dict, p ):
@@ -348,16 +349,9 @@ if __name__ == '__main__':
 
     largest, second = simulate_growth(N, T, p, d, m, save_plots = True)
     # Run the simmulation and save the ratio_dict to a pickle file
-    with open('components.pkl', 'wb') as f:
-        pickle.dump([largest, second], f)
     
 
-    # Load the ratio_dict from the pickle file
-    with open('components.pkl', 'rb') as f:
-        components = pickle.load(f)
-    
-    largest, second = components[0], components[1]
     #plot the graph 
-    plot_growth(largest, second, 10)
+    plot_growth(largest, second, 100)
     
 
