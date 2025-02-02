@@ -70,11 +70,15 @@ Implements a tumor growth simulation with oxygen diffusion and the addition of q
 
 Plots the growth of tumor cells for each 5th time step. 
 
+<img width="806" alt="tumor_growth_with_oxygen" src="https://github.com/user-attachments/assets/8eebeca8-0a9b-45be-b15a-488f46ca4901" />
+
 ### Input parameters 
 Recieves input parameters `-N`, `-T`, `-p`, `-od`, `-cu`, `-nu`, `-o`, `-nt1`, `-nt2`, `-ct1`, `-ct2`, `-qt` for grid size, number of time steps, growth probability, oxygen diffusion rate, cancer cell oxygen uptake, normal cell oxygen uptake, normal cell oxygen threshold when surrounded by more normal cells, normal cell oxygen threshold when surrounded by more cancer cells, cancer cell oxygen threshold when surrounded by more cancer cells, cancer cell oxygen threshold when surrounded by more normal cells, and the number of time steps that a quiescent cell can stay alive under the oxygen threshold. 
 
 ## oxygen_phase_transition.py 
 Finds the oxygen level (g) in which the system undergoes a phase transition. 
+
+<img width="999" alt="oxygen_phase_transition" src="https://github.com/user-attachments/assets/85002b63-6fe6-4434-bd22-cce3ff463408" />
 
 ### Input parameters 
 Recieves all input parameters (see tumor_growth_with_oxygen.py) to run the simulation for varying values of the initial oxygen level. 
@@ -82,11 +86,15 @@ Recieves all input parameters (see tumor_growth_with_oxygen.py) to run the simul
 ## oxygen_cluster_sizes.py 
 Calculates and plots the largest cluster sizes for all cell types for three initial oxygen levels: 0.00035g (near the critical point), 0.011g (near the true simulation value), and 0.1g (a high level with no cell death) with shaded error areas over 10 simulations. 
 
+<img width="1399" alt="oxygen_cluster_sizes" src="https://github.com/user-attachments/assets/9d4febd3-baf9-460c-a42c-9f2e26698c45" />
+
 ### Input parameters 
 Recieves all input parameters (see tumor_growth_with_oxygen.py) to calculate largest cluster size for many simulations. 
 
 ## oxygen_fractal_dimensions.py 
 Calculates and plots the fractal dimensions of the tumor simulation at timestep T=50 for varying levels of oxygen. 
+
+<img width="641" alt="fractal_dimensions" src="https://github.com/user-attachments/assets/058e968a-8e4c-4f1b-a356-846180208a05" />
 
 ### Input parameters 
 Recieves all input parameters (see tumor_growth_with_oxygen.py) to analyze the fractal dimension of the cellular automata that is plotted in tumor_growth_with_oxygen.py. 
