@@ -65,5 +65,29 @@ Calculate the fractal dimension of the simulation after T timesteps, using the b
 ### Input parameters 
 See avalanche_sizes.py
 
+## tumor_growth_with_oxygen.py
+Implements a tumor growth simulation with oxygen diffusion and the addition of quiescent cells.
 
+Plots the growth of tumor cells for each 5th time step. 
+
+### Input parameters 
+Recieves input parameters `-N`, `-T`, `-p`, `-od`, `-cu`, `-nu`, `-o`, `-nt1`, `-nt2`, `-ct1`, `-ct2`, `-qt` for grid size, number of time steps, growth probability, oxygen diffusion rate, cancer cell oxygen uptake, normal cell oxygen uptake, normal cell oxygen threshold when surrounded by more normal cells, normal cell oxygen threshold when surrounded by more cancer cells, cancer cell oxygen threshold when surrounded by more cancer cells, cancer cell oxygen threshold when surrounded by more normal cells, and the number of time steps that a quiescent cell can stay alive under the oxygen threshold. 
+
+## oxygen_phase_transition.py 
+Finds the oxygen level (g) in which the system undergoes a phase transition. 
+
+### Input parameters 
+Recieves all input parameters (see tumor_growth_with_oxygen.py) to run the simulation for varying values of the initial oxygen level. 
+
+## oxygen_cluster_sizes.py 
+Calculates and plots the largest cluster sizes for all cell types for three initial oxygen levels: 0.00035g (near the critical point), 0.011g (near the true simulation value), and 0.1g (a high level with no cell death) with shaded error areas over 10 simulations. 
+
+### Input parameters 
+Recieves all input parameters (see tumor_growth_with_oxygen.py) to calculate largest cluster size for many simulations. 
+
+## oxygen_fractal_dimensions.py 
+Calculates and plots the fractal dimensions of the tumor simulation at timestep T=50 for varying levels of oxygen. 
+
+### Input parameters 
+Recieves all input parameters (see tumor_growth_with_oxygen.py) to analyze the fractal dimension of the cellular automata that is plotted in tumor_growth_with_oxygen.py. 
 
