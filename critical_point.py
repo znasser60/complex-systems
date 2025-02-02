@@ -1,47 +1,77 @@
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 import tumor_growth as tg
-from argparse import ArgumentParser, RawTextHelpFormatter
+import pandas as pd
+from avalanche_sizes import parse_args
+from scipy.optimize import curve_fit
+import os
+import pickle
 
-def parse_args():
-    "Parses inputs from commandline and returns them as a Namespace object."
+def func_log(x, a, b):
+    """Logarithmic form of function for fitting"""
+    return a + b * np.log(x)
 
-    parser = ArgumentParser(prog = 'python3 critical_point.py',
-        formatter_class = RawTextHelpFormatter, description =
-        '  Simulate critical tumor size given arguments for growth probability, grid size and number of time steps.\n\n'
-        '  Example syntax:\n'
-        '    python3 critical_point.py -N 50 -T 100 -Np 30\n')
+def func_exp_log(x, a, b, c):
+    """Evaluate x at exponential function (Best fit from Levenberg-Marquardt algorithm, see
+    https://www.standardsapplied.com/nonlinear-curve-fitting-calculator.html)"""
+    return math.e**(a + b * 1/x + c * np.log(x))
 
-    # Optionals
-    parser.add_argument('-N', dest='GRID_SIZE', type=int, default=50,
-        help='grid size (default = 50)')
-
-    parser.add_argument('-T', dest='TIME_STEPS', type=int, default=50,
-        help='number of time steps (default = 100)')
-
-    parser.add_argument('-Np', dest='N_GROWTH_PROBABILITIES', type=int, default=20,
-        help='Number of values assumed for growth probability, equally spaced within the range between 0 and 1 (default = 20) ')
-
-    parser.add_argument('-Nd', dest='N_DEATH_PROBABILITIES', type=int, default=20,
-                        help='number of values assumed for death probability,equally spaced within range of 0 and 1, (default = 20) ')
-
-    return parser.parse_args()
-
-
-def plot(ratios, tumor_sizes, death_sizes, Np, Nd, T, N):
+def plot_tumor_sizes_vs_ratio(df, T, N):
+    """Plot the tumor sizes for different ratios and fit curve through the data. """
     # Plotting the results
-    plt.scatter(ratios, tumor_sizes, marker='o', color='green', label="tumor")
-    plt.scatter(ratios, death_sizes, marker='x', color='black', label="dead")
+
+    # Divide p by 8 to adjust for number of neighbors
+    df['ratio'] = df['ratio']/8
+    df['p'] = df['p']/8
+
+    plt.scatter(df['ratio'], df['tumor_size'], marker='o', color='green', alpha=0.7, label="simulated data")
+    #plt.scatter(df['ratio'], df['death_size'], marker='x', color='black', alpha=0.7, label="dead")
+
+    # Fit curve, note: needs multiple ratios (>= 10 or so) to fit curve effectively
+    popt, pcov = curve_fit(func_exp_log, df['ratio'], df['tumor_size'], maxfev=2000)
+    print(f"fit: a = {popt[0]}, b = {popt[1]}, c={popt[1]}")
+
+    # Calculate new fitted data
+    x_fit = np.linspace(df['ratio'].min(), df['ratio'].max(), 50)
+    y_fit = func_exp_log(x_fit, *popt)
+
+    plt.plot(x_fit, y_fit, label=f"Fit \n"
+                                 f"(exp({popt[0]:.2f} * {popt[1]:.2f}/x + {popt[2]:.2f} * log(x))")
+
+    # calculate derivative
+    dy_dx = np.gradient(y_fit) / np.gradient(x_fit)
+    plt.plot(x_fit, dy_dx, label=f"Derivative")
+
     plt.xscale('log')
-    plt.axvline(x=1, color='red', linestyle='--', label='Critical Point (p = d)')
+    plt.axvline(x=1, color='red', linestyle='--', label='Theoretical Critical Point (p = d)')
     plt.xlabel('Growth-to-Death Probability Ratio (p/d)')
     plt.ylabel('Final Tumor Size (% of grid size)')
-    plt.title("Number of Dead and Tumorous Cells vs. Growth-to-Death Probability Ratio \n"
-              f"(T = {T})")
+    plt.title("Number of Tumorous Cells vs. Growth-to-Death Probability Ratio \n"
+              f"(T = {T}, # Experiments = 10)")
     plt.grid(True)
-    plt.legend(loc="center left")
-    plt.savefig(f"data/Tumorsize_ratio_Np{Np}_Nd{Nd}_T{T}_N{N}_log_with_death.png")
+    plt.legend(loc="upper left")
+    plt.savefig(f"data/Tumorsize_ratio_T{T}_N{N}_log.png")
 
+def simulate_tumor_size_different_ratios(params, N, T, num_it):
+    """Simulate the tumor growth and store the final number of tumor and death cells in a dataframe."""
+    # Run simulations for each growth/death ratio
+    results = []
+    for p, d in params:
+        for i in range(num_it):
+            print(f"p = {p}, d={d}, ratio={np.round(p / d, 3)}")
+            grid = tg.simulate_growth(N, T, p, d, 0)
+            tumor_size = np.sum(grid == 1)
+            death_size = np.sum(grid == 2)
+            results.append({
+                "p": p,
+                "d": d,
+                "ratio": p / d,
+                "tumor_size": tumor_size / (N * N),
+                "death_size": death_size / (N * N)
+            })
+
+    return pd.DataFrame(results)
 
 if __name__ == '__main__':
     # Parameters
@@ -49,30 +79,38 @@ if __name__ == '__main__':
     # Parameters
     N = args.GRID_SIZE  # Size of the grid (default 50x50)
     T = args.TIME_STEPS  # Number of simulation steps
-    Np = args.N_GROWTH_PROBABILITIES  # Probability of tumor cell division
-    Nd = args.N_DEATH_PROBABILITIES
 
-    growth_probabilities = np.linspace(0.01, 0.99, Np)  # Growth probabilities from 0 to 1
-    death_probabilities = np.linspace(0.01, 0.99, Nd)
-    # Results storage
-    ratios = []
-    tumor_sizes = []  # Store final tumor size for each growth probability
-    death_sizes = []
+    if args.INPUT_FILEPATH is not None:
+        input_filepath = args.INPUT_FILEPATH
+        # Check if the pickle file exists
+        if os.path.exists(input_filepath):
+            # Load data from pickle
+            with open(input_filepath, "rb") as f:
+                df = pickle.load(f)
+            print("Data loaded from pickle.")
+        else:
+            print("Error: Input File does not exist!")
+    else:
+        growth_probabilities = args.GROWTH_PROBABILITIES  # values assumed for growth probability
+        death_probabilities = args.DEATH_PROBABILITIES  # values assumed for death probability
+        num_it = args.NUMBER_OF_EXPERIMENTS  # Number of times to repeat one experiment
 
-    # Run simulations for each growth probability
-    for p in growth_probabilities:
-        print(f"Growth probability: {p}")
-        for d in death_probabilities:
-            print(f"ratio p/d = {np.round(p/d, 3)}")
-            grid = tg.simulate_growth(N, T, p,d)
-            size = np.sum(grid == 1)
-            death_size = np.sum(grid == 2)
-            ratios.append(p/d)
-            tumor_sizes.append(size/(N*N))
-            death_sizes.append(death_size/(N*N))
+        assert len(growth_probabilities) == len(death_probabilities), "Number of growth and death " \
+                                                                      "probability values must be equal."
+        assert num_it >= 1, "Must perform at least one experiment."
 
-    plot(ratios, tumor_sizes, death_sizes, Np, Nd, T, N)
-    # TODO: plot average tumor size, then plot a curve through this, take the derivative of that and plot
-    # the derivative against the ratio
+        # Results storage
+        params = zip(growth_probabilities, death_probabilities)
+        nparams = len(growth_probabilities)
+        # Data not already generated, start simulation
+        df = simulate_tumor_size_different_ratios(params, N, T, num_it)
+        filepath = f"data/input/phase_transition_tumor_size_N{N}_T{T}_Np{nparams}_numit{num_it}.pkl"
+        directory = os.path.dirname(filepath)
+        if directory:  # Avoid creating a directory if input_file has no directory specified
+            os.makedirs(directory, exist_ok=True)
+        df.to_pickle(filepath)
+
+    plot_tumor_sizes_vs_ratio(df, T, N)
+
 
 
