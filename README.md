@@ -92,8 +92,3 @@ Calculates and plots the fractal dimensions of the tumor simulation at timestep 
 Recieves all input parameters (see tumor_growth_with_oxygen.py) to analyze the fractal dimension of the cellular automata that is plotted in tumor_growth_with_oxygen.py. 
 
 
-
-
-
-
-
