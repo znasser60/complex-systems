@@ -99,3 +99,21 @@ Calculates and plots the fractal dimensions of the tumor simulation at timestep 
 ### Input parameters 
 Recieves all input parameters (see tumor_growth_with_oxygen.py) to analyze the fractal dimension of the cellular automata that is plotted in tumor_growth_with_oxygen.py. 
 
+## Peaks.py 
+Investigates the presumed convergence to critical point 1 (growth/death ratio) by plotting tumor size at T = 100, taking the derivatives of functions fitted to these points, and then plotting the x-values of the derivatives peak for different system sizes. 
+<img width="641" alt="Fitted plots" src="https://github.com/znasser60/complex-systems/blob/5837eb8d4eef6d4a63419309122b3f1200549824/graphs_and_dicts/peaks/peaks.png" />
+<img width="641" alt="Derivatives" src="https://github.com/znasser60/complex-systems/blob/5837eb8d4eef6d4a63419309122b3f1200549824/graphs_and_dicts/peaks/derivative_peaks.png" />
+<img width="641" alt="peaks/size" src="https://github.com/znasser60/complex-systems/blob/5837eb8d4eef6d4a63419309122b3f1200549824/graphs_and_dicts/peaks/peaks_verloop.png" />
+
+
+## Components.py
+Meaasures and plots the size of the largest and second largest component over time for bith a system with and without mutation 
+<img width="641" alt="components_nomutation" src="https://github.com/znasser60/complex-systems/blob/5837eb8d4eef6d4a63419309122b3f1200549824/graphs_and_dicts/components/components_no_mut.png" />
+<img width="641" alt="components_mutation" src="https://github.com/znasser60/complex-systems/blob/5837eb8d4eef6d4a63419309122b3f1200549824/graphs_and_dicts/components/components_mut.png" />
+
+## percolation_gd_ratio.py
+Measures the size and time of the first percolating cluster against different growth/death ratios for systems with and without mutation 
+<img width="641" alt="mutation_percolation" src="https://github.com/znasser60/complex-systems/blob/5837eb8d4eef6d4a63419309122b3f1200549824/graphs_and_dicts/percolation/death_growth_mutation/Ratio_Percolating_size.png" />
+
+<img width="641" alt="percolation" src="https://github.com/znasser60/complex-systems/blob/5837eb8d4eef6d4a63419309122b3f1200549824/graphs_and_dicts/percolation/death_growth_no_mutation/Ratio_Percolating_size_no_mutation.png" />
+
