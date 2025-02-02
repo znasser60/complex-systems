@@ -127,6 +127,7 @@ if __name__ == '__main__':
     d = args.DEATH_PROBABILITY # Probability that a tumor cell dies
     m = args.MUTATION_PROBABILITY # probabilty that a healthy cell turns into a tumor cell
 
+
     assert 0 < p < 1, "Growth probability must be greater 0, less than 1"
     assert 0 < d < 1, "Death probability must be greater 0, less than 1"
     assert 0 <= m < 1, "Mutation probability must be greater or equal 0, less than 1"
