@@ -105,11 +105,16 @@ Investigates the presumed convergence to critical point 1 (growth/death ratio) b
 <img width="641" alt="Derivatives" src="https://github.com/znasser60/complex-systems/blob/5837eb8d4eef6d4a63419309122b3f1200549824/graphs_and_dicts/peaks/derivative_peaks.png" />
 <img width="641" alt="peaks/size" src="https://github.com/znasser60/complex-systems/blob/5837eb8d4eef6d4a63419309122b3f1200549824/graphs_and_dicts/peaks/peaks_verloop.png" />
 
+### Input parameters
+Receives input parameters `-N`, `-T`, `-p`, `-d` `-m ` for grid size, number of time steps, growth probability and death probability (multiple values possible) and mutation probability, respectively. Additional parameters are `-k` for the number of experiments of each parameter setting, and `-input`, for the filepath to a pandas dataframe object stored with pickle which contains data from a previous experiment. If such input argument is not given, this file is created. 
 
 ## Components.py
 Meaasures and plots the size of the largest and second largest component over time for bith a system with and without mutation 
-<img width="641" alt="components_nomutation" src="https://github.com/znasser60/complex-systems/blob/5837eb8d4eef6d4a63419309122b3f1200549824/graphs_and_dicts/components/components_no_mut.png" />
+<img width="641" alt="components_nomutation" src="https://github.com/znasser60/complex-systems/blob/c2e7ad63ad75057c6b4e0cf154968194b4b0ad67/graphs_and_dicts/components/components_no_mut.png" />
 <img width="641" alt="components_mutation" src="https://github.com/znasser60/complex-systems/blob/5837eb8d4eef6d4a63419309122b3f1200549824/graphs_and_dicts/components/components_mut.png" />
+
+## Input parameters 
+See Peaks.py 
 
 ## percolation_gd_ratio.py
 Measures the size and time of the first percolating cluster against different growth/death ratios for systems with and without mutation 
@@ -117,3 +122,5 @@ Measures the size and time of the first percolating cluster against different gr
 
 <img width="641" alt="percolation" src="https://github.com/znasser60/complex-systems/blob/5837eb8d4eef6d4a63419309122b3f1200549824/graphs_and_dicts/percolation/death_growth_no_mutation/Ratio_Percolating_size_no_mutation.png" />
 
+## Input parameters 
+See Peaks.py 
