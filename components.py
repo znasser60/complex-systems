@@ -11,7 +11,7 @@ import pickle
 
 
 
-def parse_args_components():
+def parse_args():
     "Parses inputs from commandline and returns them as a Namespace object."
 
     parser = ArgumentParser(prog = 'python3 tumor_growth.py',
@@ -65,6 +65,14 @@ def get_neighbors(x, y, N):
     return neighbors
 
 def mutate(p_mutate): 
+    """
+    Determines whether a mutation occurs based on a given probability.
+    Parameters:
+    p_mutate (float): The probability of mutation, a value between 0 and 1.
+    Returns:
+    int: Returns 1 if a mutation occurs (random number is less than p_mutate), otherwise returns 0.
+    """
+
     return 1 if np.random.rand() < p_mutate else 0
 
 def save_frame(grid, step):
@@ -125,16 +133,9 @@ def check_perc_cluster(grid):
 
             cluster_size = len(cells)
             return True, cluster_size  # Percolating cluster found
+    assert not any((0 in rows and grid.shape[0] - 1 in rows) or (0 in cols and grid.shape[1] - 1 in cols) for cluster_id in range(1, num_features + 1)), "No percolating cluster should be found."
     return False, 0  # No percolation
 
-def highlight_cluster(grid, cluster_id):
-    """
-    Returns a grid with the percolating cluster highlighted.
-    """
-    labeled_grid, _ = label(grid == 1)
-    highlighted_grid = grid.copy()
-    highlighted_grid[labeled_grid == cluster_id] = 3  # Use a new value (e.g., 3) for visualization
-    return highlighted_grid
 
 def find_largest_and_second_largest_components(grid):
     """
@@ -155,6 +156,7 @@ def find_largest_and_second_largest_components(grid):
 
     second_largest_component_id = component_sizes[1][0] if len(component_sizes) > 1 else None
     second_largest_component_size = component_sizes[1][1] if len(component_sizes) > 1 else 0
+    assert largest_component_size >= second_largest_component_size, "Largest component size should be greater than or equal to the second largest component size."
 
     return (largest_component_id, largest_component_size), (second_largest_component_id, second_largest_component_size)
 
@@ -194,13 +196,15 @@ def simulate_growth(N, T, p, d, m, save_plots = False):
         center = N // 2
         old_grid[center, center] = 1 
 
+
                    
         for step in tqdm(range(T), desc=f"Run {run+1}/{k}"):
             new_grid = old_grid.copy()
                         
 
             for x, y in np.random.permutation([(i, j) for i in range(N) for j in range(N)]):
-                
+                assert new_grid[x, y] in [0, 1, 2], f"Unexpected cell value {new_grid[x, y]} at ({x}, {y})"
+
                 if old_grid[x, y] == 1:                                            # If I am a tumor cell
                     
                     for nx, ny in neighbors_map[(x, y)]:
@@ -337,19 +341,9 @@ if __name__ == '__main__':
     
 
 
-    """
-    #Assertions 
-    assert isinstance(N, int) and N > 0, "Grid size N must be a positive integer."                # Assert that N is a positive integer
-    assert isinstance(T, int) and T > 0, "Number of time steps T must be a positive integer."     # Assert that T is a positive integer
-    assert isinstance(p, float)  and all(isinstance(prob, float) and 0 <= prob <= 1 for prob in p), "Growth probabilities p must be a list of floats between 0 and 1."     # Assert that p is a lists of floats between 0 and 1
-    assert isinstance(d, list) and all(isinstance(prob, float) and 0 <= prob <= 1 for prob in d), "Death probabilities d must be a list of floats between 0 and 1."      # Assert that d is a list of floats between 0 and 1
-    assert isinstance(m, list) and 0 <= m <= 1, "Mutation probability m must be a float between 0 and 1."                                                               # Assert that m is a float between 0 and 1
-
-    """
-
-    largest, second = simulate_growth(N, T, p, d, m, save_plots = True)
-    # Run the simmulation and save the ratio_dict to a pickle file
     
+    largest, second = simulate_growth(N, T, p, d, m, save_plots = True)
+    # (not saving to pickle file since runtime is short)
 
     #plot the graph 
     plot_growth(largest, second, 100)
